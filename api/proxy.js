@@ -1,6 +1,6 @@
 // api/proxy.js
 export default async function handler(req, res) {
-  // 1. Atur header CORS untuk frontend
+  // 1. Atur header CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -24,31 +24,38 @@ export default async function handler(req, res) {
     targetUrl.searchParams.append(key, queryParams[key]);
   });
 
-  // Daftar proxy publik alternatif (dicoba berurutan jika terjadi error)
+  // 4. Daftar proxy alternatif yang lebih stabil (dicoba berurutan)
   const proxies = [
-    (url) => `https://api.cors.lol/?url=${encodeURIComponent(url)}`, // Proxy 1
-    (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`, // Proxy 2
-    (url) => `https://corsproxy.io/?${encodeURIComponent(url)}` // Proxy 3
+    // Opsi 1: Langsung tembak tanpa proxy (kadang berhasil untuk beberapa API)
+    (url) => url, 
+    // Opsi 2: Menggunakan Codetabs (Proxy publik yang cukup stabil)
+    (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+    // Opsi 3: AllOrigins (cadangan terakhir)
+    (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
   ];
 
-  // 4. Lakukan percobaan berulang (Retry Mechanism)
+  // 5. Lakukan percobaan berulang dengan batas waktu (timeout)
   for (let i = 0; i < proxies.length; i++) {
     try {
       const proxyUrl = proxies[i](targetUrl.toString());
       
+      // Gunakan AbortController untuk timeout 8 detik
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+
       const response = await fetch(proxyUrl, {
         method: 'GET',
+        signal: controller.signal,
         headers: {
           'Accept': 'application/json',
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         }
       });
 
-      // Jika respons sukses (200 OK)
+      clearTimeout(timeoutId);
+
       if (response.ok) {
         const text = await response.text();
-        
-        // Validasi apakah respons benar-benar berupa JSON
         try {
           const data = JSON.parse(text);
           return res.status(200).json(data);
@@ -59,11 +66,11 @@ export default async function handler(req, res) {
         console.warn(`Proxy ${i + 1} gagal dengan status: ${response.status}. Mencoba proxy berikutnya...`);
       }
     } catch (err) {
-      console.warn(`Proxy ${i + 1} error: ${err.message}. Mencoba proxy berikutnya...`);
+      console.warn(`Proxy ${i + 1} error/timeout: ${err.message}. Mencoba proxy berikutnya...`);
     }
   }
 
-  // Jika semua proxy gagal
+  // 6. Jika semua proxy gagal
   return res.status(502).json({ 
     error: 'Semua jalur proxy gagal terhubung ke API target. Silakan coba beberapa saat lagi.' 
   });
