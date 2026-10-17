@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AM Bulk Premium — Alight Motion</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0e17;
+  --card: #131a2a;
+  --card-2: #1a2336;
+  --border: #232d42;
+  --text: #e6edf7;
+  --text-dim: #8b9bb4;
+  --accent: #6366f1;
+  --accent-2: #a855f7;
+  --success: #10b981;
+  --danger: #ef4444;
+  --warn: #f59e0b;
+  --radius: 14px;
+}
+
+html, body { height: 100%; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(99,102,241,0.15), transparent 40%),
+    radial-gradient(circle at 85% 80%, rgba(168,85,247,0.12), transparent 40%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.screen { display: none; position: relative; z-index: 1; min-height: 100vh; }
+.screen.active { display: block; }
+
+/* ---------- LOGIN & REGISTER ---------- */
+.login-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 400px;
+  background: rgba(19,26,42,0.85);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 36px 30px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+}
+
+.brand { text-align: center; margin-bottom: 24px; }
+.brand .logo {
+  width: 64px; height: 64px;
+  margin: 0 auto 14px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 24px; color: #fff;
+  box-shadow: 0 8px 24px rgba(99,102,241,0.4);
+}
+.brand h1 { font-size: 22px; font-weight: 700; }
+.brand p { color: var(--text-dim); font-size: 13px; margin-top: 4px; }
+
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin: 16px 0 8px;
+}
+
+input, textarea {
+  width: 100%;
+  background: var(--card-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+input:focus, textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+}
+textarea { resize: vertical; min-height: 80px; }
+
+.hint {
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--text-dim);
+  text-align: center;
+}
+.hint a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+.hint a:hover { text-decoration: underline; }
+
+/* ---------- BUTTONS ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 10px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.2s, background 0.2s;
+  font-family: inherit;
+}
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #fff;
+  box-shadow: 0 6px 20px rgba(99,102,241,0.35);
+}
+.btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(99,102,241,0.45); }
+.btn-ghost { background: var(--card-2); color: var(--text); border: 1px solid var(--border); }
+.btn-ghost:hover:not(:disabled) { background: #232d42; }
+.btn-block { width: 100%; margin-top: 16px; }
+.btn-sm { padding: 7px 14px; font-size: 12px; }
+
+/* ---------- DASHBOARD LAYOUT ---------- */
+.layout { display: flex; min-height: 100vh; }
+
+.sidebar {
+  width: 250px;
+  background: rgba(15,20,32,0.9);
+  backdrop-filter: blur(20px);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 14px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.brand-mini {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px 20px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+.brand-mini .logo {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 15px; color: #fff;
+}
+.brand-mini strong { display: block; font-size: 14px; }
+.brand-mini small { color: var(--text-dim); font-size: 11px; }
+
+.nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  background: transparent; border: none; color: var(--text-dim);
+  padding: 11px 14px; border-radius: 10px;
+  font-size: 14px; font-weight: 500;
+  cursor: pointer; text-align: left;
+  transition: all 0.2s; font-family: inherit;
+}
+.nav-item:hover { background: var(--card); color: var(--text); }
+.nav-item.active {
+  background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(168,85,247,0.15));
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px rgba(99,102,241,0.3);
+}
+.nav-item .ico { font-size: 16px; }
+
+.sidebar-foot { border-top: 1px solid var(--border); padding-top: 14px; }
+.user-chip { display: flex; align-items: center; gap: 10px; padding: 6px 6px 12px; }
+.avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 700; font-size: 14px; flex-shrink: 0;
+}
+.user-meta strong { display: block; font-size: 13px; }
+.user-meta small { color: var(--text-dim); font-size: 11px; }
+
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 22px 32px; border-bottom: 1px solid var(--border);
+  background: rgba(10,14,23,0.7); backdrop-filter: blur(10px);
+  position: sticky; top: 0; z-index: 5; gap: 12px;
+}
+.topbar h2 { font-size: 20px; font-weight: 700; }
+.topbar-actions { display: flex; align-items: center; gap: 10px; }
+.status-pill {
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(16,185,129,0.1); color: var(--success);
+  padding: 6px 12px; border-radius: 999px;
+  font-size: 12px; font-weight: 600;
+}
+.dot {
+  width: 7px; height: 7px; background: var(--success);
+  border-radius: 50%; box-shadow: 0 0 0 3px rgba(16,185,129,0.2);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+.content { padding: 28px 32px 60px; flex: 1; max-width: 1100px; width: 100%; }
+
+.tab { display: none; animation: fadeIn 0.3s; }
+.tab.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* ---------- STATS ---------- */
+.stats-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px; margin-bottom: 24px;
+}
+.stat-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px;
+  transition: transform 0.2s, border-color 0.2s;
+}
+.stat-card:hover { transform: translateY(-2px); border-color: rgba(99,102,241,0.4); }
+.stat-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: rgba(99,102,241,0.15); color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; margin-bottom: 14px;
+}
+.stat-icon.success { background: rgba(16,185,129,0.15); color: var(--success); }
+.stat-icon.warn { background: rgba(245,158,11,0.15); color: var(--warn); }
+.stat-value { font-size: 28px; font-weight: 800; line-height: 1; }
+.stat-label { color: var(--text-dim); font-size: 13px; margin-top: 4px; }
+
+/* ---------- CARD ---------- */
+.card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 24px; margin-bottom: 20px;
+}
+.card.narrow { max-width: 560px; }
+.card-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px; gap: 12px;
+}
+.card h3 { font-size: 17px; font-weight: 700; }
+.muted { color: var(--text-dim); font-size: 14px; }
+.small { font-size: 12px; }
+
+/* ---------- FLOW ---------- */
+.flow-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 14px; margin-top: 16px;
+}
+.flow-step {
+  background: var(--card-2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 18px; cursor: pointer;
+  transition: border-color 0.2s, transform 0.15s;
+}
+.flow-step:hover { border-color: var(--accent); transform: translateY(-2px); }
+.flow-num {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 13px; margin-bottom: 10px;
+}
+.flow-step h4 { font-size: 14px; margin-bottom: 4px; }
+.flow-step p { font-size: 12px; color: var(--text-dim); }
+
+/* ---------- STEPS ---------- */
+.step { display: none; }
+.step.active { display: block; animation: fadeIn 0.3s; }
+
+/* ---------- WAITING ---------- */
+.waiting-box { text-align: center; padding: 20px 0; }
+.spinner {
+  width: 46px; height: 46px;
+  border: 3px solid var(--border); border-top-color: var(--accent);
+  border-radius: 50%; margin: 0 auto 16px;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.waiting-box strong { display: block; font-size: 16px; color: var(--accent); margin: 6px 0; word-break: break-all; }
+.waiting-box p { color: var(--text-dim); font-size: 14px; }
+
+.auto-link {
+  background: rgba(16,185,129,0.08);
+  border: 1px solid rgba(16,185,129,0.3);
+  border-radius: 10px; padding: 12px; margin-top: 16px;
+}
+.link-preview {
+  font-size: 12px; color: var(--success);
+  font-family: monospace; word-break: break-all; margin-top: 4px;
+}
+
+.row-actions { display: flex; gap: 10px; margin-top: 16px; }
+.row-actions .btn { flex: 1; }
+
+/* ---------- SUCCESS ---------- */
+.success-card { text-align: center; }
+.success-anim svg { width: 80px; height: 80px; margin: 0 auto 16px; }
+.success-anim circle {
+  fill: none; stroke: var(--success); stroke-width: 3;
+  stroke-dasharray: 151; stroke-dashoffset: 151;
+  animation: drawCircle 0.6s ease-out forwards;
+}
+.success-anim path {
+  fill: none; stroke: var(--success); stroke-width: 4;
+  stroke-linecap: round; stroke-linejoin: round;
+  stroke-dasharray: 40; stroke-dashoffset: 40;
+  animation: drawCheck 0.4s 0.6s ease-out forwards;
+}
+@keyframes drawCircle { to { stroke-dashoffset: 0; } }
+@keyframes drawCheck { to { stroke-dashoffset: 0; } }
+.success-card h3 { font-size: 22px; margin-bottom: 8px; }
+.text-success { color: var(--success); }
+.text-danger { color: var(--danger); }
+
+.result-box {
+  background: var(--card-2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 16px; margin-top: 20px; text-align: left;
+}
+.result-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 0; font-size: 13px;
+  border-bottom: 1px solid var(--border); gap: 12px;
+}
+.result-row:last-child { border-bottom: none; }
+.result-row span { color: var(--text-dim); }
+.result-row strong { font-weight: 600; word-break: break-all; text-align: right; }
+.mono-sm { font-family: monospace; font-size: 11px; font-weight: 400 !important; }
+
+/* ---------- HISTORY ---------- */
+.history-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; max-height: 500px; overflow-y: auto; }
+.history-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 14px; background: var(--card-2);
+  border-radius: 10px; border: 1px solid var(--border); gap: 12px;
+}
+.history-item strong { display: block; font-size: 13px; }
+.history-item small { color: var(--text-dim); font-size: 11px; }
+
+/* ---------- TOAST ---------- */
+.toast {
+  position: fixed; bottom: 24px; left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--card-2); color: var(--text);
+  padding: 13px 22px; border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  font-size: 14px; font-weight: 500; opacity: 0;
+  transition: all 0.3s; z-index: 1000;
+  max-width: 90%; text-align: center;
+}
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+.toast.success { border-color: rgba(16,185,129,0.5); }
+.toast.error { border-color: rgba(239,68,68,0.5); }
+
+.spin-inline {
+  display: inline-block; width: 14px; height: 14px;
+  border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
+  border-radius: 50%; animation: spin 0.7s linear infinite;
+  margin-right: 6px; vertical-align: middle;
+}
+
+.only-mobile { display: none; }
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width: 768px) {
+  .layout { flex-direction: column; }
+  .sidebar {
+    width: 100%; height: auto; position: relative;
+    flex-direction: row; padding: 12px; overflow-x: auto;
+    border-right: none; border-bottom: 1px solid var(--border);
+    align-items: center;
+  }
+  .brand-mini { border: none; padding: 0 12px 0 0; margin: 0; }
+  .brand-mini > div:last-child { display: none; }
+  .nav { flex-direction: row; flex: 1; }
+  .nav-item { white-space: nowrap; padding: 8px 12px; font-size: 13px; }
+  .nav-item .ico { font-size: 14px; }
+  .sidebar-foot { display: none; }
+  .topbar { padding: 16px 20px; }
+  .content { padding: 20px 16px 60px; }
+  .flow-grid { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: 1fr; }
+  .only-mobile { display: inline-flex; }
+  .status-pill { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN & REGISTER SCREEN ============ -->
+<section id="screen-login" class="screen active">
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="brand">
+        <div class="logo">AM</div>
+        <h1>Alight Motion</h1>
+        <p>Bulk Premium Tool</p>
+      </div>
+      
+      <!-- FORM LOGIN -->
+      <form id="login-form">
+        <label>Username</label>
+        <input id="login-user" type="text" placeholder="Masukkan username" autocomplete="username" required>
+        <label>Password</label>
+        <input id="login-pass" type="password" placeholder="Masukkan password" autocomplete="current-password" required>
+        <button type="submit" class="btn btn-primary btn-block">Masuk</button>
+        <p class="hint">Belum punya akun? <a href="#" id="to-register">Daftar Sekarang</a></p>
+      </form>
+
+      <!-- FORM REGISTER -->
+      <form id="register-form" style="display: none;">
+        <label>Username Baru</label>
+        <input id="reg-user" type="text" placeholder="Buat username" autocomplete="username" required>
+        <label>Password Baru</label>
+        <input id="reg-pass" type="password" placeholder="Buat password (min 4 karakter)" autocomplete="new-password" required>
+        <label>Konfirmasi Password</label>
+        <input id="reg-pass-confirm" type="password" placeholder="Ulangi password" autocomplete="new-password" required>
+        <button type="submit" class="btn btn-primary btn-block">Daftar Akun</button>
+        <p class="hint">Sudah punya akun? <a href="#" id="to-login">Masuk di sini</a></p>
+      </form>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============ DASHBOARD ============ -->
+<section id="screen-dashboard" class="screen">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand-mini">
+        <div class="logo">AM</div>
+        <div>
+          <strong>AM Bulk</strong>
+          <small>Premium Tool</small>
+        </div>
+      </div>
+      <nav class="nav">
+        <button class="nav-item active" data-tab="overview"><span class="ico">▦</span> Dashboard</button>
+        <button class="nav-item" data-tab="send"><span class="ico">✉</span> Kirim Magic Link</button>
+        <button class="nav-item" data-tab="bulk"><span class="ico">⚡</span> Bulk Auto Verify</button>
+        <button class="nav-item" data-tab="history"><span class="ico">⟳</span> Riwayat</button>
+      </nav>
+      <div class="sidebar-foot">
+        <div class="user-chip">
+          <div class="avatar" id="user-avatar">A</div>
+          <div class="user-meta">
+            <strong id="user-name">user</strong>
+            <small>Premium Member</small>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-block logout-btn">Keluar</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <h2 id="page-title">Dashboard</h2>
+        <div class="topbar-actions">
+          <div class="status-pill"><span class="dot"></span> API Online</div>
+          <button class="btn btn-ghost btn-sm only-mobile logout-btn">Keluar</button>
+        </div>
+      </header>
+
+      <div class="content">
+        <!-- OVERVIEW -->
+        <div id="tab-overview" class="tab active">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon">✉</div>
+              <div class="stat-value" id="stat-sent">0</div>
+              <div class="stat-label">Magic Link Terkirim</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon success">✓</div>
+              <div class="stat-value" id="stat-verified">0</div>
+              <div class="stat-label">Akun Premium</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon warn">⚡</div>
+              <div class="stat-value" id="stat-bulk">0</div>
+              <div class="stat-label">Bulk Aktif</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h3>Mulai Cepat</h3></div>
+            <p class="muted">Aktifkan premium Alight Motion 1 tahun dengan 2 langkah mudah.</p>
+            <div class="flow-grid">
+              <div class="flow-step" data-goto="send">
+                <div class="flow-num">1</div>
+                <h4>Kirim Magic Link</h4>
+                <p>Masukkan email akun Alight Motion kamu, kami kirimkan link verifikasi.</p>
+              </div>
+              <div class="flow-step" data-goto="send">
+                <div class="flow-num">2</div>
+                <h4>Verifikasi</h4>
+                <p>Klik link di email, tempel di aplikasi, akun langsung premium.</p>
+              </div>
+            </div>
+            <button class="btn btn-primary" data-goto="send" style="margin-top:16px">Mulai Sekarang →</button>
+          </div>
+        </div>
+
+        <!-- SEND -->
+        <div id="tab-send" class="tab">
+          <div id="send-step-email" class="step active">
+            <div class="card narrow">
+              <div class="card-head"><h3>Masukkan Email</h3></div>
+              <p class="muted">Gunakan email yang terdaftar di akun Alight Motion kamu.</p>
+              <form id="send-form">
+                <label>Email Alight Motion</label>
+                <input id="send-email" type="email" placeholder="contoh@email.com" required>
+                <button class="btn btn-primary btn-block" type="submit" id="send-btn">Kirim Magic Link</button>
+              </form>
+            </div>
+          </div>
+
+          <div id="send-step-waiting" class="step">
+            <div class="card narrow">
+              <div class="card-head"><h3>Menunggu Magic Link</h3></div>
+              <div class="waiting-box">
+                <div class="spinner"></div>
+                <p>Kami telah mengirim magic link ke</p>
+                <strong id="wait-email">—</strong>
+                <p class="muted small">Cek inbox / spam. Setelah menerima link, tempel di bawah ini.</p>
+              </div>
+              <div id="auto-link-box" class="auto-link" style="display:none">
+                <p class="small muted">Link terdeteksi otomatis:</p>
+                <div class="link-preview" id="auto-link-text"></div>
+              </div>
+              <label style="margin-top:16px">Tempel Magic Link</label>
+              <textarea id="verify-link" rows="3" placeholder="https://..."></textarea>
+              <div class="row-actions">
+                <button class="btn btn-ghost" id="resend-btn">Kirim Ulang</button>
+                <button class="btn btn-primary" id="verify-btn">Verifikasi Sekarang</button>
+              </div>
+              <button class="btn btn-ghost btn-block" id="cancel-send" style="margin-top:8px">Batal</button>
+            </div>
+          </div>
+
+          <div id="send-step-success" class="step">
+            <div class="card narrow success-card">
+              <div class="success-anim">
+                <svg viewBox="0 0 52 52">
+                  <circle cx="26" cy="26" r="24"/>
+                  <path d="M14 27l8 8 16-16"/>
+                </svg>
+              </div>
+              <h3>Verifikasi Berhasil!</h3>
+              <p class="muted">Akun Alight Motion kamu sekarang <strong class="text-success">Premium 1 Tahun</strong> 🎉</p>
+              <div class="result-box">
+                <div class="result-row"><span>Email</span><strong id="success-email">—</strong></div>
+                <div class="result-row"><span>Status</span><strong class="text-success">PREMIUM</strong></div>
+                <div class="result-row"><span>Durasi</span><strong>1 Tahun</strong></div>
+                <div class="result-row"><span>Berlaku s/d</span><strong id="success-until">—</strong></div>
+              </div>
+              <button class="btn btn-primary btn-block" id="success-done">Selesai</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- BULK -->
+        <div id="tab-bulk" class="tab">
+          <div class="card narrow">
+            <div class="card-head"><h3>Bulk Auto Verify</h3></div>
+            <p class="muted">Generate sejumlah akun premium secara otomatis dalam jumlah banyak.</p>
+            <label>Jumlah Akun</label>
+            <input id="bulk-count" type="number" min="1" max="100" value="5">
+            <button class="btn btn-primary btn-block" id="bulk-btn">Jalankan Bulk</button>
+            <div id="bulk-result" class="result-box" style="display:none"></div>
+          </div>
+        </div>
+
+        <!-- HISTORY -->
+        <div id="tab-history" class="tab">
+          <div class="card">
+            <div class="card-head">
+              <h3>Riwayat Aktivitas</h3>
+              <button class="btn btn-ghost btn-sm" id="clear-history">Hapus</button>
+            </div>
+            <div id="history-list" class="history-list">
+              <p class="muted">Belum ada aktivitas.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</section>
+
+<div id="toast" class="toast"></div>
+
+<script>
+/* ============ CONFIG ============ */
+const API_PROXY_BASE = '/api/proxy'; 
+const API_KEY  = 'kayz-sn5alijvoi8w3vvunfnc';
+
+/* ============ STATE ============ */
+const state = { user: null, currentEmail: '', history: [] };
+
+/* ============ STORAGE HELPERS ============ */
+const loadUser = () => { try { return JSON.parse(localStorage.getItem('am_user') || 'null'); } catch { return null; } };
+const saveUser = u => u ? localStorage.setItem('am_user', JSON.stringify(u)) : localStorage.removeItem('am_user');
+
+const getAccounts = () => { try { return JSON.parse(localStorage.getItem('am_accounts') || '[]'); } catch { return []; } };
+const saveAccounts = (accounts) => localStorage.setItem('am_accounts', JSON.stringify(accounts));
+
+const loadHistory = () => { try { return JSON.parse(localStorage.getItem('am_history') || '[]'); } catch { return []; } };
+const saveHistory = () => localStorage.setItem('am_history', JSON.stringify(state.history.slice(0, 100)));
+
+/* ============ API PROXY CALL (UPDATED ERROR HANDLING) ============ */
+async function apiCall(endpoint, params) {
+  const url = new URL(API_PROXY_BASE, window.location.origin);
+  
+  url.searchParams.set('path', endpoint); 
+  url.searchParams.set('apikey', API_KEY);
+  
+  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+
+  let res;
+  try {
+    res = await fetch(url.toString(), { method: 'GET' });
+  } catch (e) {
+    throw new Error('Koneksi ke server proxy gagal. Pastikan api/proxy.js sudah ada.');
+  }
+  
+  // BAGIAN YANG DIPERBARUI: Menampilkan detail error dari server
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    const msg = errorData.detail ? `${errorData.error}: ${errorData.detail}` : (errorData.error || `HTTP ${res.status}`);
+    throw new Error(msg);
+  }
+  
+  return await res.json();
+}
+
+const api = {
+  send:   (email)         => apiCall('/am-send',   { email }),
+  verify: (email, link)   => apiCall('/am-verify', { email, link }),
+  bulk:   (count)         => apiCall('/am-bulk',   { count })
+};
+
+/* ============ UI HELPERS ============ */
+const $ = id => document.getElementById(id);
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === id));
+}
+function showTab(name) {
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.id === 'tab-' + name));
+  const titles = { overview: 'Dashboard', send: 'Kirim Magic Link', bulk: 'Bulk Auto Verify', history: 'Riwayat' };
+  $('page-title').textContent = titles[name] || '';
+}
+function showStep(name) {
+  ['email', 'waiting', 'success'].forEach(s => $('send-step-' + s).classList.toggle('active', s === name));
+}
+function resetSendFlow() {
+  $('send-email').value = '';
+  $('verify-link').value = '';
+  $('auto-link-box').style.display = 'none';
+  state.currentEmail = '';
+  showStep('email');
+}
+
+let toastTimer;
+function toast(msg, type = 'info') {
+  const el = $('toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = 'toast', 3500);
+}
+
+function addHistory(item) {
+  state.history.unshift({ ...item, at: Date.now() });
+  saveHistory();
+  renderHistory();
+  renderStats();
+}
+function renderStats() {
+  $('stat-sent').textContent = state.history.filter(h => h.type === 'send').length;
+  $('stat-verified').textContent = state.history.filter(h => h.type === 'verify' && h.ok).length;
+  $('stat-bulk').textContent = state.history.filter(h => h.type === 'bulk').reduce((a, b) => a + (b.count || 0), 0);
+}
+function renderHistory() {
+  const list = $('history-list');
+  if (!state.history.length) { list.innerHTML = '<p class="muted">Belum ada aktivitas.</p>'; return; }
+  list.innerHTML = state.history.map(h => {
+    const time = new Date(h.at).toLocaleString('id-ID');
+    const label = {
+      send:   '✉ Magic Link terkirim',
+      verify: h.ok ? '✓ Verifikasi berhasil' : '✗ Verifikasi gagal',
+      bulk:   '⚡ Bulk: ' + (h.count || 0) + ' akun'
+    }[h.type] || h.type;
+    return `<div class="history-item">
+      <div>
+        <strong>${label}</strong>
+        <small>${h.email || ''}${h.detail ? ' · ' + h.detail : ''}</small>
+      </div>
+      <small>${time}</small>
+    </div>`;
+  }).join('');
+}
+
+/* ============ AUTH LOGIC (LOGIN & REGISTER) ============ */
+const loginForm = $('login-form');
+const registerForm = $('register-form');
+const toRegisterBtn = $('to-register');
+const toLoginBtn = $('to-login');
+
+toRegisterBtn.addEventListener('click', (e) => {
+  e.preventDefault();
+  loginForm.style.display = 'none';
+  registerForm.style.display = 'block';
+});
+toLoginBtn.addEventListener('click', (e) => {
+  e.preventDefault();
+  registerForm.style.display = 'none';
+  loginForm.style.display = 'block';
+});
+
+loginForm.addEventListener('submit', e => {
+  e.preventDefault();
+  const username = $('login-user').value.trim();
+  const password = $('login-pass').value;
+
+  if (!username || !password) return toast('Username dan password wajib diisi', 'error');
+
+  const accounts = getAccounts();
+  const validAccount = accounts.find(acc => acc.username === username && acc.password === password);
+
+  if (validAccount) {
+    state.user = { username };
+    saveUser(state.user);
+    toast('Login berhasil!', 'success');
+    enterDashboard();
+  } else {
+    toast('Username atau password salah!', 'error');
+  }
+});
+
+registerForm.addEventListener('submit', e => {
+  e.preventDefault();
+  const username = $('reg-user').value.trim();
+  const password = $('reg-pass').value;
+  const confirm = $('reg-pass-confirm').value;
+
+  if (username.length < 3) return toast('Username minimal 3 karakter', 'error');
+  if (password.length < 4) return toast('Password minimal 4 karakter', 'error');
+  if (password !== confirm) return toast('Konfirmasi password tidak cocok', 'error');
+
+  const accounts = getAccounts();
+  if (accounts.some(acc => acc.username.toLowerCase() === username.toLowerCase())) {
+    return toast('Username sudah terdaftar, gunakan yang lain', 'error');
+  }
+
+  accounts.push({ username, password });
+  saveAccounts(accounts);
+
+  $('reg-user').value = '';
+  $('reg-pass').value = '';
+  $('reg-pass-confirm').value = '';
+  
+  state.user = { username };
+  saveUser(state.user);
+  
+  toast('Pendaftaran berhasil! Selamat datang.', 'success');
+  enterDashboard();
+});
+
+
+/* ============ DASHBOARD LOGIC ============ */
+function enterDashboard() {
+  $('user-name').textContent = state.user.username;
+  $('user-avatar').textContent = state.user.username[0].toUpperCase();
+  showScreen('screen-dashboard');
+  showTab('overview');
+  renderStats();
+  renderHistory();
+}
+
+function logout() {
+  saveUser(null);
+  state.user = null;
+  
+  $('login-user').value = '';
+  $('login-pass').value = '';
+  loginForm.style.display = 'block';
+  registerForm.style.display = 'none';
+  
+  showScreen('screen-login');
+}
+document.querySelectorAll('.logout-btn').forEach(b => b.addEventListener('click', logout));
+
+/* ============ NAV ============ */
+document.querySelectorAll('.nav-item').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const t = btn.dataset.tab;
+    showTab(t);
+    if (t === 'send') resetSendFlow();
+  });
+});
+document.querySelectorAll('[data-goto]').forEach(el => {
+  el.addEventListener('click', () => {
+    const t = el.dataset.goto;
+    showTab(t);
+    if (t === 'send') resetSendFlow();
+  });
+});
+
+/* ============ SEND FLOW ============ */
+const sendForm = $('send-form');
+const sendBtn = $('send-btn');
+
+sendForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  const email = $('send-email').value.trim();
+  if (!email) return;
+
+  state.currentEmail = email;
+  sendBtn.disabled = true;
+  sendBtn.innerHTML = '<span class="spin-inline"></span> Memproses...';
+
+  try {
+    const data = await api.send(email);
+    console.log('am-send response:', data);
+    
+    const magicLink = findLink(data);
+    
+    if (magicLink) {
+      try {
+        await fetch('/api/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, magicLink })
+        });
+      } catch (err) {
+        console.warn('Resend gagal, tapi API mungkin sudah mengirim email.', err);
+      }
+    }
+
+    addHistory({ type: 'send', email, detail: magicLink ? 'Magic link diproses' : 'Magic link dikirim oleh API' });
+    $('wait-email').textContent = email;
+    showStep('waiting');
+
+    if (magicLink) {
+      $('auto-link-box').style.display = 'block';
+      $('auto-link-text').textContent = magicLink;
+      $('verify-link').value = magicLink;
+    } else {
+      $('auto-link-box').style.display = 'none';
+    }
+
+    toast(magicLink ? 'Magic link berhasil diproses!' : 'Magic link telah dikirim ke email Anda oleh server.', 'success');
+    
+  } catch (err) {
+    console.error(err);
+    toast('Gagal: ' + err.message, 'error');
+  } finally {
+    sendBtn.disabled = false;
+    sendBtn.textContent = 'Kirim Magic Link';
+  }
+});
+
+function findLink(obj) {
+  if (!obj) return null;
+  const str = JSON.stringify(obj);
+  const m = str.match(/https?:\\?\/\\?\/[^"'\s]+/);
+  if (m) return m[0].replace(/\\\//g, '/');
+  return null;
+}
+
+$('resend-btn').addEventListener('click', async () => {
+  const btn = $('resend-btn');
+  btn.disabled = true;
+  btn.textContent = 'Mengirim...';
+  try {
+    const data = await api.send(state.currentEmail);
+    const magicLink = findLink(data);
+    
+    if (magicLink) {
+      await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: state.currentEmail, magicLink })
+      });
+    }
+    
+    addHistory({ type: 'send', email: state.currentEmail, detail: 'Kirim ulang' });
+    toast('Magic link dikirim ulang', 'success');
+  } catch (err) {
+    toast('Gagal: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Kirim Ulang';
+  }
+});
+
+$('cancel-send').addEventListener('click', resetSendFlow);
+
+$('verify-btn').addEventListener('click', async () => {
+  const link = $('verify-link').value.trim();
+  if (!link) return toast('Tempel magic link terlebih dahulu', 'error');
+
+  const btn = $('verify-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin-inline"></span> Memverifikasi...';
+
+  try {
+    const data = await api.verify(state.currentEmail, link);
+    console.log('am-verify response:', data);
+
+    const ok = detectSuccess(data);
+    addHistory({
+      type: 'verify',
+      email: state.currentEmail,
+      ok,
+      detail: ok ? 'Premium 1 tahun aktif' : 'Verifikasi gagal'
+    });
+
+    if (ok) showSuccess();
+    else toast('Verifikasi gagal. Periksa link atau coba lagi.', 'error');
+  } catch (err) {
+    console.error(err);
+    toast('Gagal verifikasi: ' + err.message, 'error');
+    addHistory({ type: 'verify', email: state.currentEmail, ok: false, detail: err.message });
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Verifikasi Sekarang';
+  }
+});
+
+function detectSuccess(data) {
+  if (!data) return false;
+  if (data.status === true || data.success === true || data.ok === true) return true;
+  if (data.status === 'success' || data.status === 'ok') return true;
+  const str = JSON.stringify(data).toLowerCase();
+  if (/success|berhasil|premium|verified/.test(str) && !/false|failed|gagal/.test(str)) return true;
+  return false;
+}
+
+function showSuccess() {
+  $('success-email').textContent = state.currentEmail;
+  const until = new Date();
+  until.setFullYear(until.getFullYear() + 1);
+  $('success-until').textContent = until.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+  showStep('success');
+  toast('🎉 Akun premium aktif 1 tahun!', 'success');
+}
+
+$('success-done').addEventListener('click', () => {
+  resetSendFlow();
+  showTab('overview');
+});
+
+/* ============ BULK ============ */
+$('bulk-btn').addEventListener('click', async () => {
+  const count = parseInt($('bulk-count').value, 10);
+  if (!count || count < 1) return toast('Jumlah tidak valid', 'error');
+
+  const btn = $('bulk-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin-inline"></span> Menjalankan...';
+  const box = $('bulk-result');
+
+  try {
+    const data = await api.bulk(count);
+    console.log('am-bulk response:', data);
+    addHistory({ type: 'bulk', count, detail: 'Bulk selesai' });
+
+    box.style.display = 'block';
+    box.innerHTML = `
+      <div class="result-row"><span>Diminta</span><strong>${count} akun</strong></div>
+      <div class="result-row"><span>Status</span><strong class="text-success">Berhasil</strong></div>
+      <div class="result-row"><span>Respon</span><strong class="mono-sm">${escapeHtml(JSON.stringify(data).slice(0, 200))}</strong></div>
+    `;
+    toast('Bulk berhasil dijalankan', 'success');
+  } catch (err) {
+    console.error(err);
+    box.style.display = 'block';
+    box.innerHTML = `<div class="result-row"><span>Error</span><strong class="text-danger">${escapeHtml(err.message)}</strong></div>`;
+    toast('Gagal bulk: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Jalankan Bulk';
+  }
+});
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+/* ============ HISTORY ============ */
+$('clear-history').addEventListener('click', () => {
+  if (!confirm('Hapus semua riwayat?')) return;
+  state.history = [];
+  saveHistory();
+  renderHistory();
+  renderStats();
+  toast('Riwayat dihapus', 'success');
+});
+
+/* ============ INIT ============ */
+(function init() {
+  state.user = loadUser();
+  state.history = loadHistory();
+  if (state.user) enterDashboard();
+  else showScreen('screen-login');
+})();
+</script>
+</body>
+</html>
