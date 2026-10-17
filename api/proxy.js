@@ -6,8 +6,7 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
+    return res.status(200).end();
   }
 
   // 2. Ambil path dan parameter
@@ -26,28 +25,34 @@ export default async function handler(req, res) {
   });
 
   try {
-    // 4. Server Vercel menembak API asli
-    const response = await fetch(targetUrl.toString(), {
+    // 4. Gunakan AllOrigins sebagai perantara untuk menghindari blokir IP
+    // AllOrigins akan mengambil data dari API target dan meneruskannya ke Vercel
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl.toString())}`;
+
+    const response = await fetch(proxyUrl, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
+        // Gunakan User-Agent browser biasa
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       }
     });
 
+    // 5. Periksa jika masih error
     if (!response.ok) {
       const errorText = await response.text();
       return res.status(response.status).json({ 
-        error: `API error: ${response.status}`, 
-        detail: errorText 
+        error: `API target error: ${response.status}`, 
+        detail: errorText.substring(0, 200) // Batasi panjang error
       });
     }
 
-    // 5. Kembalikan hasilnya ke web Anda
+    // 6. Kembalikan data ke frontend
     const data = await response.json();
     res.status(200).json(data);
 
   } catch (error) {
-    res.status(500).json({ error: 'Gagal menghubungi API', detail: error.message });
+    console.error('Proxy Error:', error);
+    res.status(500).json({ error: 'Gagal menghubungi API melalui proxy', detail: error.message });
   }
 }
