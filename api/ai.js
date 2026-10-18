@@ -9,18 +9,15 @@ export default async function handler(req, res) {
   const targetUrl = `https://apikayz.clutch.web.id/ai/gemini?apikey=${API_KEY}&prompt=${encodeURIComponent(prompt)}`;
 
   try {
-    const response = await fetch(targetUrl, {
-      method: 'GET',
-      headers: { 'Accept': 'application/json' },
-    });
-
+    const response = await fetch(targetUrl);
+    
     if (!response.ok) {
-      return res.status(response.status).json({ error: 'API target error' });
+      return res.status(response.status).json({ error: `KAYZ API Error: ${response.status}` });
     }
 
     const data = await response.json();
     res.status(200).json(data);
   } catch (error) {
-    res.status(500).json({ error: 'Gagal menghubungi server AI', detail: error.message });
+    res.status(500).json({ error: 'Gagal menghubungi server AI KAYZ', detail: error.message });
   }
 }
