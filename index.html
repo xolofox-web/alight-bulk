@@ -738,7 +738,7 @@ const loadHistory = () => { try { return JSON.parse(localStorage.getItem('am_his
 const saveHistory = () => localStorage.setItem('am_history', JSON.stringify(state.history.slice(0, 100)));
 
 // Admin Credentials Default (Telah diubah sesuai permintaan)
-const defaultAdmin = { username: 'Zyxell', password: '@Zyxel1975' };
+const defaultAdmin = { username: 'Zyxell', password: '#Zyxellganteng' };
 const getAdminCreds = () => { try { return JSON.parse(localStorage.getItem('am_admin_creds')) || defaultAdmin; } catch { return defaultAdmin; } };
 const saveAdminCreds = (creds) => localStorage.setItem('am_admin_creds', JSON.stringify(creds));
 
