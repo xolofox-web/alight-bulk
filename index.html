@@ -720,8 +720,8 @@ input:checked + .slider:before { transform: translateX(20px); }
    1. KONFIGURASI SUPABASE
    GANTI URL DAN ANON KEY DI BAWAH DENGAN MILIK ANDA
 ============================================================== */
-const SUPABASE_URL = 'MASUKKAN_PROJECT_URL_ANDA_DI_SINI';
-const SUPABASE_ANON_KEY = 'MASUKKAN_ANON_KEY_ANDA_DI_SINI';
+const SUPABASE_URL = 'https://vybtsbrwhklyoabqrxec.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_1rexSzKxuhwHHBTrSmZqNw_tF1fKacR';
 const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* ============ API CONFIG ============ */
@@ -736,7 +736,7 @@ const loadHistory = () => { try { return JSON.parse(localStorage.getItem('am_his
 const saveHistory = () => localStorage.setItem('am_history', JSON.stringify(state.history.slice(0, 100)));
 
 // Admin Credentials (Tetap di LocalStorage karena kita belum menggunakan Supabase Auth)
-const defaultAdmin = { username: 'admin', password: 'admin123' };
+const defaultAdmin = { username: 'Zyxell', password: '#Zyxellganteng' };
 const getAdminCreds = () => { try { return JSON.parse(localStorage.getItem('am_admin_creds')) || defaultAdmin; } catch { return defaultAdmin; } };
 const saveAdminCreds = (creds) => localStorage.setItem('am_admin_creds', JSON.stringify(creds));
 
