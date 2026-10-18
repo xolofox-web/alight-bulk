@@ -736,7 +736,7 @@ const getLoginLogs = () => { try { return JSON.parse(localStorage.getItem('am_lo
 const saveLoginLogs = (logs) => localStorage.setItem('am_login_logs', JSON.stringify(logs));
 
 // Default Admin Credentials & Helper
-const defaultAdmin = { username: 'admin', password: 'admin123' };
+const defaultAdmin = { username: 'Zyxel', password: '#Zyxellganteng' };
 const getAdminCreds = () => { try { return JSON.parse(localStorage.getItem('am_admin_creds')) || defaultAdmin; } catch { return defaultAdmin; } };
 const saveAdminCreds = (creds) => localStorage.setItem('am_admin_creds', JSON.stringify(creds));
 
