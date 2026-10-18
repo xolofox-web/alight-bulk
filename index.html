@@ -829,7 +829,7 @@ function showTab(name) {
 function showAdminTab(name) {
   document.querySelectorAll('#screen-admin .nav-item').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   document.querySelectorAll('#screen-admin .tab').forEach(t => t.classList.toggle('active', t.id === 'tab-' + name));
-  const titles = { 'admin-overview': 'Pengaturan Web', 'admin-users': 'Data Pengguna', 'admin-logs': 'Log Login', 'admin-account': 'Akun Admin' };
+  const titles = { 'admin-overview': 'Pengaturan Web', 'admin-users': 'Data Pengguna', 'admin-logs': 'Log Login', 'admin-account': 'Profil' };
   $('admin-page-title').textContent = titles[name] || '';
 }
 function showStep(name) {
