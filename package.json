@@ -1,0 +1,8 @@
+{
+  "name": "zyxell-bulk",
+  "version": "1.0.0",
+  "description": "Alight Motion Premium Auto Verify",
+  "dependencies": {
+    "nodemailer": "^6.9.7"
+  }
+}
