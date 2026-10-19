@@ -385,7 +385,7 @@ input:checked + .slider:before { transform: translateX(20px); }
           <div class="avatar" id="user-avatar">A</div>
           <div class="user-info">
             <strong id="user-name">User</strong>
-            <small>Premium Member</small>
+            <small>Member</small>
           </div>
         </div>
         <button class="btn btn-ghost btn-block logout-btn" style="margin-top:0; padding:8px;">Keluar</button>
@@ -402,7 +402,7 @@ input:checked + .slider:before { transform: translateX(20px); }
         </div>
         <div class="top-bar-right">
           <div class="status-badge">
-            <div class="status-dot"></div> API Online
+            <div class="status-dot"></div> Online
           </div>
           <button class="btn btn-ghost btn-sm logout-btn" style="display:none;">Keluar</button>
         </div>
@@ -745,8 +745,8 @@ if (!bcrypt) console.error('Library Bcrypt gagal dimuat.');
 /* ==============================================================
    1. KONFIGURASI SUPABASE
 ============================================================== */
-const SUPABASE_URL = 'MASUKKAN_PROJECT_URL_ANDA_DI_SINI';
-const SUPABASE_ANON_KEY = 'MASUKKAN_ANON_KEY_ANDA_DI_SINI';
+const SUPABASE_URL = 'https://vybtsbrwhklyoabqrxec.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_1rexSzKxuhwHHBTrSmZqNw_tF1fKacR';
 
 if (SUPABASE_URL.includes('MASUKKAN') || SUPABASE_ANON_KEY.includes('MASUKKAN')) {
   console.warn('PERINGATAN: Anda belum mengisi SUPABASE_URL dan SUPABASE_ANON_KEY!');
