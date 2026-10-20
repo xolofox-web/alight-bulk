@@ -2541,7 +2541,7 @@ $('clear-history').addEventListener('click', () => {
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'users', filter: `username=eq.${state.user.username}` }, payload => {
            if (payload.new) {
                if (payload.new.status === 'banned') {
-                   forceLogout('Akun Anda telah diblokir oleh Admin secara real-time.');
+                   forceLogout('Akun Anda telah diblokir.');
                    return;
                }
 
