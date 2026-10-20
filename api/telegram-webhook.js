@@ -27,7 +27,12 @@ module.exports = async function handler(req, res) {
       .in('key', ['telegram_token', 'telegram_chat_id']);
 
     const cfg = {};
-    (settings || []).forEach(s => { cfg[s.key] = s.value; });
+(settings || []).forEach(s => { 
+  // Hanya timpa jika nilainya tidak kosong
+  if (s.value && s.value.trim() !== '') {
+    cfg[s.key] = s.value; 
+  }
+});
     const adminChatId = String(cfg.telegram_chat_id || '');
     const botToken = cfg.telegram_token || process.env.TELEGRAM_BOT_TOKEN;
 
