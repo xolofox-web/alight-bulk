@@ -455,7 +455,7 @@ export default async function handler(req, res) {
       case '/allmenu':
         await sendMsg(botToken, chatId, helpText());
         break;
-      case '/ctvoucher':
+      case '/addvoucher':
         await handleCreateVoucher(botToken, chatId, parts, senderName);
         break;
       case '/listvoucher':
@@ -637,15 +637,15 @@ async function handleWebStatus(botToken, chatId) {
   }
 }
 
-/* =========== HANDLER: /ctvoucher =========== */
+/* =========== HANDLER: /addvoucher =========== */
 async function handleCreateVoucher(botToken, chatId, parts, senderName) {
   if (parts.length < 5) {
     return sendMsg(botToken, chatId,
       '❌ *Format salah!*\n\n' +
       '*Format:* /ctvoucher <kode> <tipe> <jumlah> <max_penggunaan>\n\n' +
       '*Contoh:*\n' +
-      '• /ctvoucher ZYXELL50 kuota 50 100\n' +
-      '• /ctvoucher VIPGRATIS vip 0 50\n\n' +
+      '• /addvoucher ZYXELL50 kuota 50 100\n' +
+      '• /addvoucher VIPGRATIS vip 0 50\n\n' +
       '*Tipe:*\n' +
       '• kuota — tambah kuota (isi jumlah > 0)\n' +
       '• vip — upgrade ke VIP (jumlah diabaikan)\n\n' +
@@ -764,7 +764,7 @@ function helpText() {
     '📌 /addlimit <username> <jumlah> — tambah limit kuota\n' +
     '📌 /rdlimit <username> <jumlah> — kurangi limit kuota\n\n' +
     '*🎟️ Voucher:*\n' +
-    '📌 /ctvoucher <kode> <tipe> <jumlah> <max>\n' +
+    '📌 /addvoucher <kode> <tipe> <jumlah> <max>\n' +
     '📌 /listvoucher — lihat 25 voucher terakhir\n' +
     '📌 /delvoucher <kode> — hapus voucher\n\n' +
     '*📊 Lainnya:*\n' +
@@ -1230,11 +1230,11 @@ function helpText() {
              <button class="btn btn-primary btn-block" id="save-jadwal-btn" style="margin-top: 16px;">Simpan Jadwal</button>
           </div>
 
-          <!-- ============ TELEGRAM BOT — FITUR /ctvoucher ============ -->
+          <!-- ============ TELEGRAM BOT — FITUR /addvoucher ============ -->
           <div class="box narrow" style="margin-top: 24px;">
              <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">Integrasi Telegram Bot</h3>
              <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
-                Simpan token & chat ID, lalu aktifkan webhook. Setelah aktif, kamu bisa membuat voucher langsung dari Telegram dengan command <code style="background: var(--bg-base); padding: 2px 6px; border-radius: 4px;">/ctvoucher</code>.
+                Simpan token & chat ID, lalu aktifkan webhook. Setelah aktif, kamu bisa membuat voucher langsung dari Telegram dengan command <code style="background: var(--bg-base); padding: 2px 6px; border-radius: 4px;">/addvoucher</code>.
              </p>
              <label>Bot Token</label>
              <input type="text" id="telegram-token-input" placeholder="123456:ABC-DEF...">
@@ -1266,9 +1266,9 @@ function helpText() {
                ↳ Kurangi limit user `budi` sebanyak 50.<br><br>
 
                <b style="color:var(--text-main);">🎟️ Manajemen Voucher</b><br>
-               <code>/ctvoucher ZYXELL50 kuota 50 100</code><br>
+               <code>/addvoucher ZYXELL50 kuota 50 100</code><br>
                ↳ Buat voucher +50 kuota, max 100 pakai.<br>
-               <code>/ctvoucher VIPGRATIS vip 0 50</code><br>
+               <code>/addvoucher VIPGRATIS vip 0 50</code><br>
                ↳ Buat voucher VIP, max 50 pakai.<br>
                <code>/listvoucher</code> — lihat voucher.<br>
                <code>/delvoucher KODE</code> — hapus voucher.<br><br>
