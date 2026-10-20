@@ -91,10 +91,10 @@ module.exports = async function handler(req, res) {
   }
 };
 
-/* ============ /addlimit & /rdlimit ============ */
+/* ============ /addlimit & /dellimit ============ */
 async function handleLimitChange(botToken, chatId, parts, senderName, action) {
   if (parts.length < 3) {
-    return sendMsg(botToken, chatId, `❌ *Format salah!*\n\n*Format:* /${action === 'add' ? 'addlimit' : 'rdlimit'} <username> <jumlah>\n*Contoh:* /${action === 'add' ? 'addlimit' : 'rdlimit'} budi 50`);
+    return sendMsg(botToken, chatId, `❌ *Format salah!*\n\n*Format:* /${action === 'add' ? 'addlimit' : 'dellimit'} <username> <jumlah>\n*Contoh:* /${action === 'add' ? 'addlimit' : 'dellimit'} Zyxell 50`);
   }
   
   const targetUser = parts[1];
