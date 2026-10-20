@@ -361,7 +361,7 @@ function helpText() {
     '📌 /status — cek status web\n\n' +
     '*👥 Manajemen User:*\n' +
     '📌 /addlimit <username> <jumlah> — tambah limit kuota\n' +
-    '📌 /rdlimit <username> <jumlah> — kurangi limit kuota\n\n' +
+    '📌 /dellimit <username> <jumlah> — kurangi limit kuota\n\n' +
     '*🎟️ Voucher:*\n' +
     '📌 /ctvoucher <kode> <tipe> <jumlah> <max>\n' +
     '📌 /listvoucher — lihat 25 voucher terakhir\n' +
