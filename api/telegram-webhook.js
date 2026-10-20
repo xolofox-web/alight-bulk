@@ -49,7 +49,7 @@ module.exports = async function handler(req, res) {
     switch (command) {
       case '/start':
       case '/help':
-      case '/allmenu:
+      case '/allmenu';
         await sendMsg(botToken, chatId, helpText());
         break;
       case '/close':
