@@ -30,7 +30,7 @@ export default async function handler(req, res) {
           body: JSON.stringify({ chat_id: chatId, text: msg, parse_mode: 'HTML' })
         });
       } catch (e) {
-        console.error('❌ Gagal kirim pesan:', e.message);
+        console.error('Gagal kirim pesan:', e.message);
       }
     };
 
@@ -39,14 +39,27 @@ export default async function handler(req, res) {
     if (command.includes('@')) command = command.split('@')[0];
 
     if (command === '/register') {
-      if (args.length !== 4) {
-        await sendMessage('❌ <b>Format Salah!</b>\n\nGunakan format:\n<code>/register username email password</code>');
+      // Format menerima 4 argumen (Free) atau 5 argumen (dengan Role)
+      if (args.length < 4 || args.length > 5) {
+        await sendMessage('❌ <b>Format Salah!</b>\n\nGunakan format:\n<code>/register username email password role</code>\n\nRole bersifat opsional (isi dengan VIP atau Free).');
         return res.status(200).send('OK');
       }
 
       const username = args[1];
       const email = args[2];
       const password = args[3];
+      
+      // Ambil role dari parameter ke-4, jika kosong anggap 'free'
+      let roleInput = args[4] ? args[4].toLowerCase() : 'free';
+      
+      // Tentukan Tier dan Limit
+      let tier = 'Free';
+      let limit = 30;
+      
+      if (roleInput === 'vip') {
+        tier = 'VIP';
+        limit = 100;
+      }
 
       const supabase = createClient(supabaseUrl, supabaseKey);
       
@@ -58,40 +71,40 @@ export default async function handler(req, res) {
         email: email,
         password: hashedPassword,
         status: 'active',
-        limit_harian: 30,
+        limit_harian: limit,
         kuota_terpakai: 0,
-        tier: 'Free',
+        tier: tier, 
         ip_address: 'Via Telegram Bot',
         referral_code: 'ZYX-' + Math.random().toString(36).substring(2, 7).toUpperCase(),
         bonus_kuota: 0
       }]);
 
       if (error) {
-        console.error("❌ Supabase Error:", error.message);
+        console.error("Supabase Error:", error.message);
         if (error.code === '23505') {
           await sendMessage('❌ <b>Gagal!</b>\nUsername atau Email sudah terdaftar.');
         } else {
           await sendMessage(`❌ Gagal database: ${error.message}`);
         }
       } else {
-        // --- BAGIAN PESAN BALASAN YANG DIUBAH ---
+        // Format pesan balasan sesuai permintaan
         await sendMessage(`pendaftaran berhasil ✅
 username: ${username}
 password: ${password}
 email: ${email}
+role: ${tier} (maka user/pengguna berada di role ${tier} yang mempunyai limit ${limit}/${limit})
 
 silakan login ke website: alight-bulk.vercel.app`);
-        // ----------------------------------------
       }
       
     } else if (command === '/start' || command === '/help') {
-      await sendMessage('👋 <b>Selamat Datang!</b>\n\nUntuk daftar ketik:\n<code>/register username email password</code>');
+      await sendMessage('👋 <b>Selamat Datang!</b>\n\nUntuk daftar ketik:\n<code>/register username email password role</code>\n\nContoh Free: <code>/register budi budi@gmail.com pass123</code>\nContoh VIP: <code>/register budi budi@gmail.com pass123 VIP</code>');
     }
 
     return res.status(200).send('OK');
 
   } catch (error) {
-    console.error('❌ Webhook Fatal Error:', error);
+    console.error('Webhook Fatal Error:', error);
     return res.status(200).send('OK'); 
   }
 }
