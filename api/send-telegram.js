@@ -5,13 +5,11 @@ export default async function handler(req, res) {
   }
 
   const { message } = req.body;
-
-  // Gunakan Environment Variable Vercel agar aman
   const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
   const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
   if (!TOKEN || !CHAT_ID) {
-    return res.status(500).json({ error: 'Telegram token atau chat ID belum diatur di server.' });
+    return res.status(500).json({ error: 'Token atau Chat ID belum diatur di Vercel.' });
   }
 
   try {
