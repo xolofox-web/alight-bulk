@@ -13,7 +13,6 @@ export default async function handler(req, res) {
     const token = process.env.TELEGRAM_BOT_TOKEN;
 
     if (!supabaseUrl || !supabaseKey || !token) {
-      console.error("❌ ERROR: Environment Variables belum diatur.");
       return res.status(200).send('OK');
     }
 
@@ -23,7 +22,6 @@ export default async function handler(req, res) {
     const chatId = message.chat.id;
     const text = message.text.trim();
 
-    // Fungsi balas pesan
     const sendMessage = async (msg) => {
       try {
         await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
@@ -36,20 +34,13 @@ export default async function handler(req, res) {
       }
     };
 
-    // Pisahkan pesan berdasarkan spasi (regex \s+ menangani spasi ganda)
     const args = text.split(/\s+/); 
-    
-    // Ambil perintah pertama, dan buang embel-embel @NamaBot jika ada
     let command = args[0];
-    if (command.includes('@')) {
-      command = command.split('@')[0];
-    }
+    if (command.includes('@')) command = command.split('@')[0];
 
-    // Logika Perintah
     if (command === '/register') {
-      // args[0] = /register, args[1] = username, args[2] = email, args[3] = password
       if (args.length !== 4) {
-        await sendMessage('❌ <b>Format Salah!</b>\n\nGunakan format:\n<code>/register username email password</code>\n\nPastikan tidak ada spasi di dalam username atau password.');
+        await sendMessage('❌ <b>Format Salah!</b>\n\nGunakan format:\n<code>/register username email password</code>');
         return res.status(200).send('OK');
       }
 
@@ -58,6 +49,7 @@ export default async function handler(req, res) {
       const password = args[3];
 
       const supabase = createClient(supabaseUrl, supabaseKey);
+      
       const salt = bcrypt.genSaltSync(10);
       const hashedPassword = bcrypt.hashSync(password, salt);
 
@@ -82,7 +74,14 @@ export default async function handler(req, res) {
           await sendMessage(`❌ Gagal database: ${error.message}`);
         }
       } else {
-        await sendMessage(`✅ <b>Pendaftaran Berhasil!</b>\n\nUsername: <b>${username}</b>\nEmail: <b>${email}</b>\n\nSilakan login ke website.`);
+        // --- BAGIAN PESAN BALASAN YANG DIUBAH ---
+        await sendMessage(`pendaftaran berhasil ✅
+username: ${username}
+password: ${password}
+email: ${email}
+
+silakan login ke website: alight-bulk.vercel.app`);
+        // ----------------------------------------
       }
       
     } else if (command === '/start' || command === '/help') {
@@ -95,4 +94,4 @@ export default async function handler(req, res) {
     console.error('❌ Webhook Fatal Error:', error);
     return res.status(200).send('OK'); 
   }
-        }
+}
