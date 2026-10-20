@@ -3,68 +3,73 @@ import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
+  // 1. Tangani error 405: Izinkan GET agar log bersih, tapi hanya proses POST
+  if (req.method === 'GET') {
+    return res.status(200).send('Webhook is active. Please use POST.');
+  }
+  if (req.method !== 'POST') {
+    return res.status(200).send('OK'); 
+  }
 
   try {
-    // 1. Inisialisasi Supabase
+    // 2. Pastikan Environment Variable tersedia
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_ANON_KEY;
-    
-    if (!supabaseUrl || !supabaseKey) {
-      console.error("Missing Supabase Env Vars");
-      return res.status(200).send('OK'); // Tetap balas 200 agar webhook tidak dihapus Telegram
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+
+    if (!supabaseUrl || !supabaseKey || !token) {
+      console.error("Environment variables missing");
+      return res.status(200).send('OK');
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
     const { message } = req.body;
 
+    // Abaikan jika bukan pesan teks
     if (!message || !message.text) return res.status(200).send('OK');
 
     const chatId = message.chat.id;
     let text = message.text.trim();
-    const token = process.env.TELEGRAM_BOT_TOKEN;
 
-    // Fungsi balas pesan
+    // Fungsi kirim pesan ke Telegram dengan batas waktu (timeout) 5 detik
     const sendMessage = async (msg) => {
-      await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: chatId, text: msg, parse_mode: 'HTML' })
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      try {
+        await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: chatId, text: msg, parse_mode: 'HTML' }),
+          signal: controller.signal
+        });
+      } catch (e) {
+        console.error('Gagal kirim pesan Telegram:', e.message);
+      } finally {
+        clearTimeout(timeoutId);
+      }
     };
 
     // Bersihkan teks jika formatnya /register@NamaBot
-    if (text.includes('@')) {
-        text = text.split('@')[0];
-    }
+    if (text.includes('@')) text = text.split('@')[0];
 
     // Logika Perintah
     if (text.startsWith('/register')) {
       const args = text.split(' ');
       
       if (args.length !== 4) {
-        return await sendMessage('❌ <b>Format Salah!</b>\n\nGunakan format:\n<code>/register username email password</code>\n\nContoh:\n<code>/register budi budi@gmail.com rahasia123</code>');
+        await sendMessage('❌ <b>Format Salah!</b>\n\nGunakan format:\n<code>/register username email password</code>');
+        return res.status(200).send('OK');
       }
 
       const username = args[1];
       const email = args[2];
       const password = args[3];
 
-      // Cek duplikat
-      const { data: existingUser } = await supabase
-        .from('users')
-        .select('username, email')
-        .or(`username.eq.${username},email.eq.${email}`)
-        .maybeSingle();
-
-      if (existingUser) {
-        return await sendMessage('❌ <b>Gagal!</b>\nUsername atau Email sudah terdaftar.');
-      }
-
-      // Hash & Insert
+      // Hash Password
       const salt = bcrypt.genSaltSync(10);
       const hashedPassword = bcrypt.hashSync(password, salt);
 
+      // Langsung INSERT (tanpa cek duplikat manual agar cepat)
       const { error } = await supabase.from('users').insert([{
         username: username,
         email: email,
@@ -79,21 +84,26 @@ export default async function handler(req, res) {
       }]);
 
       if (error) {
-        console.error(error);
-        return await sendMessage('❌ Gagal menyimpan ke database. Pastikan email belum pernah dipakai.');
+        // Kode 23505 = Duplicate Key (Username/Email sudah ada)
+        if (error.code === '23505') {
+          await sendMessage('❌ <b>Gagal!</b>\nUsername atau Email sudah terdaftar.');
+        } else {
+          console.error('Supabase Error:', error);
+          await sendMessage('❌ Gagal menyimpan ke database.');
+        }
+      } else {
+        await sendMessage(`✅ <b>Pendaftaran Berhasil!</b>\n\nUsername: <b>${username}</b>\nEmail: <b>${email}</b>\n\nSilakan login ke website.`);
       }
-
-      await sendMessage(`✅ <b>Pendaftaran Berhasil!</b>\n\nUsername: <b>${username}</b>\nEmail: <b>${email}</b>\n\nSilakan login ke website.`);
       
     } else if (text === '/start' || text === '/help') {
       await sendMessage('👋 <b>Selamat Datang!</b>\n\nUntuk daftar ketik:\n<code>/register username email password</code>');
     }
 
-    // Wajib membalas 200 OK agar Telegram tidak menghapus webhook
+    // Wajib membalas 200 OK secepat mungkin
     return res.status(200).send('OK');
 
   } catch (error) {
-    console.error('Webhook Error:', error);
-    return res.status(200).send('OK'); // Tetap 200 agar webhook aman
+    console.error('Webhook Fatal Error:', error);
+    return res.status(200).send('OK'); 
   }
 }
