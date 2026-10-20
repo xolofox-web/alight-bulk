@@ -1,15 +1,15 @@
 // api/telegram-webhook.js
-// Vercel Serverless Function — Handler Command Bot Telegram Zyxell
+// Vercel Serverless Function — Handler Bot Telegram Zyxell (CommonJS)
 // Commands: /close, /open, /status, /ctvoucher, /listvoucher, /delvoucher, /stats, /help
 
-import { createClient } from '@supabase/supabase-js';
+const { createClient } = require('@supabase/supabase-js');
 
 const supabase = createClient(
   process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY
 );
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
@@ -21,7 +21,6 @@ export default async function handler(req, res) {
     const text = message.text.trim();
     const senderName = message.from?.username || message.from?.first_name || 'Admin';
 
-    // Ambil konfigurasi bot dari tabel settings
     const { data: settings } = await supabase
       .from('settings')
       .select('key, value')
@@ -34,7 +33,6 @@ export default async function handler(req, res) {
 
     if (!botToken) return res.status(200).json({ ok: true });
 
-    // AUTH: hanya admin chat ID yang diizinkan
     if (!adminChatId || chatId !== adminChatId) {
       await sendMsg(botToken, chatId, '⛔ *Akses Ditolak*\nAnda bukan admin Zyxell Bulk.');
       return res.status(200).json({ ok: true });
@@ -48,8 +46,6 @@ export default async function handler(req, res) {
       case '/help':
         await sendMsg(botToken, chatId, helpText());
         break;
-
-      /* ============ KONTROL WEBSITE ============ */
       case '/close':
         await handleCloseWeb(botToken, chatId, parts, senderName);
         break;
@@ -59,8 +55,6 @@ export default async function handler(req, res) {
       case '/status':
         await handleWebStatus(botToken, chatId);
         break;
-
-      /* ============ VOUCHER ============ */
       case '/ctvoucher':
         await handleCreateVoucher(botToken, chatId, parts, senderName);
         break;
@@ -70,12 +64,9 @@ export default async function handler(req, res) {
       case '/delvoucher':
         await handleDeleteVoucher(botToken, chatId, parts, senderName);
         break;
-
-      /* ============ STATISTIK ============ */
       case '/stats':
         await handleStats(botToken, chatId);
         break;
-
       default:
         await sendMsg(botToken, chatId, '❓ Command ' + command + ' tidak dikenal.\n\nKetik /help untuk melihat daftar command.');
     }
@@ -85,26 +76,19 @@ export default async function handler(req, res) {
     console.error('[telegram-webhook] Error:', err);
     return res.status(200).json({ ok: true });
   }
-}
+};
 
-/* =========================================================
-   HANDLER: /close [pesan custom]
-   Menutup web secara global + set pesan maintenance custom.
-   ========================================================= */
+/* ============ /close [pesan custom] ============ */
 async function handleCloseWeb(botToken, chatId, parts, senderName) {
   const customMessage = parts.slice(1).join(' ').trim();
   const defaultMessage = 'Web Zyxell Bulk sedang dalam masa perbaikan atau ditutup sementara oleh Admin. Silakan kembali lagi nanti.';
   const finalMessage = customMessage || defaultMessage;
 
   try {
-    const { error: err1 } = await supabase
-      .from('settings')
-      .upsert({ key: 'web_status', value: 'closed' });
+    const { error: err1 } = await supabase.from('settings').upsert({ key: 'web_status', value: 'closed' });
     if (err1) throw err1;
 
-    const { error: err2 } = await supabase
-      .from('settings')
-      .upsert({ key: 'maintenance_message', value: finalMessage });
+    const { error: err2 } = await supabase.from('settings').upsert({ key: 'maintenance_message', value: finalMessage });
     if (err2) throw err2;
 
     try {
@@ -112,7 +96,7 @@ async function handleCloseWeb(botToken, chatId, parts, senderName) {
         admin_username: 'Telegram:' + senderName,
         action: 'Menutup web via Bot. Pesan: ' + finalMessage
       }]);
-    } catch (e) { /* silent */ }
+    } catch (e) {}
 
     await sendMsg(botToken, chatId,
       '🔒 *WEB BERHASIL DITUTUP*\n\n' +
@@ -126,15 +110,10 @@ async function handleCloseWeb(botToken, chatId, parts, senderName) {
   }
 }
 
-/* =========================================================
-   HANDLER: /open
-   Membuka web secara global.
-   ========================================================= */
+/* ============ /open ============ */
 async function handleOpenWeb(botToken, chatId, senderName) {
   try {
-    const { error } = await supabase
-      .from('settings')
-      .upsert({ key: 'web_status', value: 'open' });
+    const { error } = await supabase.from('settings').upsert({ key: 'web_status', value: 'open' });
     if (error) throw error;
 
     try {
@@ -142,7 +121,7 @@ async function handleOpenWeb(botToken, chatId, senderName) {
         admin_username: 'Telegram:' + senderName,
         action: 'Membuka akses web via Bot'
       }]);
-    } catch (e) { /* silent */ }
+    } catch (e) {}
 
     await sendMsg(botToken, chatId,
       '🔓 *WEB BERHASIL DIBUKA*\n\n' +
@@ -155,10 +134,7 @@ async function handleOpenWeb(botToken, chatId, senderName) {
   }
 }
 
-/* =========================================================
-   HANDLER: /status
-   Cek status web saat ini.
-   ========================================================= */
+/* ============ /status ============ */
 async function handleWebStatus(botToken, chatId) {
   try {
     const { data, error } = await supabase
@@ -175,8 +151,7 @@ async function handleWebStatus(botToken, chatId) {
     const statusIcon = isClosed ? '🔴' : '🟢';
     const statusText = isClosed ? 'DITUTUP (Maintenance)' : 'TERBUKA (Aktif)';
 
-    let txt = '📊 *STATUS WEBSITE*\n\n' +
-      statusIcon + ' Status: *' + statusText + '*\n';
+    let txt = '📊 *STATUS WEBSITE*\n\n' + statusIcon + ' Status: *' + statusText + '*\n';
 
     if (isClosed && cfg.maintenance_message) {
       txt += '\n📢 Pesan:\n' + cfg.maintenance_message + '\n';
@@ -194,9 +169,7 @@ async function handleWebStatus(botToken, chatId) {
   }
 }
 
-/* =========================================================
-   HANDLER: /ctvoucher <kode> <tipe> <jumlah> <max>
-   ========================================================= */
+/* ============ /ctvoucher ============ */
 async function handleCreateVoucher(botToken, chatId, parts, senderName) {
   if (parts.length < 5) {
     return sendMsg(botToken, chatId,
@@ -204,11 +177,7 @@ async function handleCreateVoucher(botToken, chatId, parts, senderName) {
       '*Format:* /ctvoucher <kode> <tipe> <jumlah> <max_penggunaan>\n\n' +
       '*Contoh:*\n' +
       '• /ctvoucher ZYXELL50 kuota 50 100\n' +
-      '• /ctvoucher VIPGRATIS vip 0 50\n\n' +
-      '*Tipe:*\n' +
-      '• kuota — tambah kuota (isi jumlah > 0)\n' +
-      '• vip — upgrade ke VIP (jumlah diabaikan)\n\n' +
-      '*Max penggunaan:* batas berapa kali kode bisa ditukar'
+      '• /ctvoucher VIPGRATIS vip 0 50'
     );
   }
 
@@ -234,11 +203,8 @@ async function handleCreateVoucher(botToken, chatId, parts, senderName) {
   if (exist) return sendMsg(botToken, chatId, '❌ Voucher ' + code + ' sudah ada di database.');
 
   const { error } = await supabase.from('vouchers').insert([{
-    code,
-    reward_type: type,
-    reward_amount: type === 'kuota' ? amount : 0,
-    max_uses: maxUses,
-    current_uses: 0
+    code, reward_type: type, reward_amount: type === 'kuota' ? amount : 0,
+    max_uses: maxUses, current_uses: 0
   }]);
 
   if (error) return sendMsg(botToken, chatId, '❌ Gagal membuat voucher:\n' + error.message);
@@ -248,7 +214,7 @@ async function handleCreateVoucher(botToken, chatId, parts, senderName) {
       admin_username: 'Telegram:' + senderName,
       action: 'Buat voucher via Bot: ' + code + ' (' + type + ', ' + amount + ', max ' + maxUses + ')'
     }]);
-  } catch (e) { /* silent */ }
+  } catch (e) { }
 
   const rewardText = type === 'vip' ? '⭐ Upgrade ke VIP' : '💎 +' + amount + ' Kuota';
 
@@ -262,15 +228,10 @@ async function handleCreateVoucher(botToken, chatId, parts, senderName) {
   );
 }
 
-/* =========================================================
-   HANDLER: /listvoucher
-   ========================================================= */
+/* ============ /listvoucher ============ */
 async function handleListVouchers(botToken, chatId) {
   const { data: list, error } = await supabase
-    .from('vouchers')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(25);
+    .from('vouchers').select('*').order('created_at', { ascending: false }).limit(25);
 
   if (error) return sendMsg(botToken, chatId, '❌ Gagal ambil data: ' + error.message);
   if (!list || !list.length) return sendMsg(botToken, chatId, '📭 Belum ada voucher di database.');
@@ -285,36 +246,27 @@ async function handleListVouchers(botToken, chatId) {
   await sendMsg(botToken, chatId, txt);
 }
 
-/* =========================================================
-   HANDLER: /delvoucher <kode>
-   ========================================================= */
+/* ============ /delvoucher ============ */
 async function handleDeleteVoucher(botToken, chatId, parts, senderName) {
   if (parts.length < 2) return sendMsg(botToken, chatId, '❌ Format: /delvoucher <kode>');
   const code = parts[1].toUpperCase();
-
   const { error } = await supabase.from('vouchers').delete().eq('code', code);
   if (error) return sendMsg(botToken, chatId, '❌ Gagal hapus: ' + error.message);
-
   try {
     await supabase.from('admin_logs').insert([{
-      admin_username: 'Telegram:' + senderName,
-      action: 'Hapus voucher via Bot: ' + code
+      admin_username: 'Telegram:' + senderName, action: 'Hapus voucher via Bot: ' + code
     }]);
-  } catch (e) { /* silent */ }
-
+  } catch (e) {}
   await sendMsg(botToken, chatId, '✅ Voucher ' + code + ' berhasil dihapus.');
 }
 
-/* =========================================================
-   HANDLER: /stats
-   ========================================================= */
+/* ============ /stats ============ */
 async function handleStats(botToken, chatId) {
   const [u, v, l] = await Promise.all([
     supabase.from('users').select('*', { count: 'exact', head: true }),
     supabase.from('vouchers').select('*', { count: 'exact', head: true }),
     supabase.from('login_logs').select('*', { count: 'exact', head: true })
   ]);
-
   await sendMsg(botToken, chatId,
     '📊 *STATISTIK ZYXELL BULK*\n\n' +
     '👥 Total Pengguna : ' + (u.count || 0) + '\n' +
@@ -323,29 +275,18 @@ async function handleStats(botToken, chatId) {
   );
 }
 
-/* =========================================================
-   HELPER: Send Message to Telegram
-   ========================================================= */
+/* ============ Helper: Send Message ============ */
 async function sendMsg(token, chatId, text) {
   try {
     await fetch('https://api.telegram.org/bot' + token + '/sendMessage', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text,
-        parse_mode: 'Markdown',
-        disable_web_page_preview: true
-      })
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'Markdown', disable_web_page_preview: true })
     });
-  } catch (e) {
-    console.error('[sendMsg] gagal kirim pesan:', e);
-  }
+  } catch (e) { console.error('[sendMsg] gagal kirim pesan:', e); }
 }
 
-/* =========================================================
-   HELPER: Help Text
-   ========================================================= */
+/* ============ Helper: Help Text ============ */
 function helpText() {
   return '🤖 *ZYXELL BULK — ADMIN BOT*\n\n' +
     '*🌐 Kontrol Website:*\n' +
@@ -354,7 +295,6 @@ function helpText() {
     '📌 /status — cek status web\n\n' +
     '*🎟️ Voucher:*\n' +
     '📌 /ctvoucher <kode> <tipe> <jumlah> <max>\n' +
-    '   Contoh: /ctvoucher ZYXELL50 kuota 50 100\n' +
     '📌 /listvoucher — lihat 25 voucher terakhir\n' +
     '📌 /delvoucher <kode> — hapus voucher\n\n' +
     '*📊 Lainnya:*\n' +
