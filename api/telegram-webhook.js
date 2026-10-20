@@ -61,7 +61,7 @@ module.exports = async function handler(req, res) {
       case '/status':
         await handleWebStatus(botToken, chatId);
         break;
-      case '/ctvoucher':
+      case '/addvoucher':
         await handleCreateVoucher(botToken, chatId, parts, senderName);
         break;
       case '/listvoucher':
@@ -235,15 +235,15 @@ async function handleWebStatus(botToken, chatId) {
   }
 }
 
-/* ============ /ctvoucher ============ */
+/* ============ /delvoucher ============ */
 async function handleCreateVoucher(botToken, chatId, parts, senderName) {
   if (parts.length < 5) {
     return sendMsg(botToken, chatId,
       '❌ *Format salah!*\n\n' +
-      '*Format:* /ctvoucher <kode> <tipe> <jumlah> <max_penggunaan>\n\n' +
+      '*Format:* /delvoucher <kode> <tipe> <jumlah> <max_penggunaan>\n\n' +
       '*Contoh:*\n' +
-      '• /ctvoucher ZYXELL50 kuota 50 100\n' +
-      '• /ctvoucher VIPGRATIS vip 0 50'
+      '• /delvoucher ZYXELL50 kuota 50 100\n' +
+      '• /delvoucher VIPGRATIS vip 0 50'
     );
   }
 
@@ -363,7 +363,7 @@ function helpText() {
     '📌 /addlimit <username> <jumlah> — tambah limit kuota\n' +
     '📌 /dellimit <username> <jumlah> — kurangi limit kuota\n\n' +
     '*🎟️ Voucher:*\n' +
-    '📌 /ctvoucher <kode> <tipe> <jumlah> <max>\n' +
+    '📌 /delvoucher <kode> <tipe> <jumlah> <max>\n' +
     '📌 /listvoucher — lihat 25 voucher terakhir\n' +
     '📌 /delvoucher <kode> — hapus voucher\n\n' +
     '*📊 Lainnya:*\n' +
