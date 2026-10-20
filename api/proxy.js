@@ -7,8 +7,15 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'API Key tidak ditemukan' });
   }
 
-  // GANTI URL INI dengan URL API Alight Motion yang benar
-  let targetUrl = `https://api.alightmotion-target.com${path}?apikey=${API_KEY}`;
+  // URL API ASLI DARI ANDA
+  const BASE_URL = 'https://apikayz.clutch.web.id/tools';
+  
+  // Menyesuaikan endpoint
+  let endpoint = '';
+  if (path === '/am-send' || path === '/am-verify') endpoint = '/am-verify'; // Karena di dokumentasi Anda am-verify
+  if (path === '/am-bulk') endpoint = '/am-bulk';
+
+  let targetUrl = `${BASE_URL}${endpoint}?apikey=${API_KEY}`;
   
   if (email) targetUrl += `&email=${encodeURIComponent(email)}`;
   if (link) targetUrl += `&link=${encodeURIComponent(link)}`;
@@ -26,11 +33,9 @@ export default async function handler(req, res) {
     return res.status(200).json(data);
     
   } catch (error) {
-    // Mencetak error asli ke Log Vercel (DNS, Timeout, SSL, dll)
     console.error("FETCH FAILED DETAIL:", error.cause || error.message);
-    
     return res.status(500).json({ 
-      error: `fetch failed`, 
+      error: `Gagal terhubung ke API Target`, 
       detail: error.cause ? error.cause.message : error.message 
     });
   }
