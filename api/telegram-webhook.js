@@ -1,6 +1,6 @@
 // api/telegram-webhook.js
 // Vercel Serverless Function — Handler Bot Telegram Zyxell (CommonJS)
-// Commands: /close, /open, /status, /ctvoucher, /listvoucher, /delvoucher, /stats, /help, /allmenu
+// Commands: /close, /open, /status, /ctvoucher, /listvoucher, /delvoucher, /stats, /help,
 
 const { createClient } = require('@supabase/supabase-js');
 
