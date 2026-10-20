@@ -41,7 +41,7 @@ export default async function handler(req, res) {
     if (command === '/register') {
       // Format menerima 4 argumen (Free) atau 5 argumen (dengan Role)
       if (args.length < 4 || args.length > 5) {
-        await sendMessage('❌ <b>Format Salah!</b>\n\nGunakan format:\n<code>/register username email password role</code>\n\nRole bersifat opsional (isi dengan VIP atau Free).');
+        await sendMessage('❌ <b>Format Salah!</b>\n\nGunakan format:\n<code>/register username email password role</code>\n\nRole.');
         return res.status(200).send('OK');
       }
 
@@ -92,13 +92,13 @@ export default async function handler(req, res) {
 username: ${username}
 password: ${password}
 email: ${email}
-role: ${tier} (maka user/pengguna berada di role ${tier} yang mempunyai limit ${limit}/${limit})
+role: ${tier}
 
 silakan login ke website: alight-bulk.vercel.app`);
       }
       
     } else if (command === '/start' || command === '/help') {
-      await sendMessage('👋 <b>Selamat Datang!</b>\n\nUntuk daftar ketik:\n<code>/register username email password role</code>\n\nContoh Free: <code>/register budi budi@gmail.com pass123</code>\nContoh VIP: <code>/register budi budi@gmail.com pass123 VIP</code>');
+      await sendMessage('👋 <b>Selamat Datang!</b>\n\nUntuk daftar ketik:\n<code>/register username email password role</code>\n\nContoh Free: <code>/register Zyxell ayveneyrahelp@gmail.com pass123</code>\nContoh VIP: <code>/register Zyxell ayveneyrahelp@gmail.com pass123 VIP</code>');
     }
 
     return res.status(200).send('OK');
