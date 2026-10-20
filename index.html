@@ -467,7 +467,7 @@ export default async function handler(req, res) {
       case '/addlimit':
         await handleLimitChange(botToken, chatId, parts, senderName, 'add');
         break;
-      case '/rdlimit':
+      case '/dellimit':
         await handleLimitChange(botToken, chatId, parts, senderName, 'reduce');
         break;
       case '/stats':
@@ -493,10 +493,10 @@ export default async function handler(req, res) {
   }
 }
 
-/* =========== HANDLER: /addlimit & /rdlimit =========== */
+/* =========== HANDLER: /addlimit & /dellimit =========== */
 async function handleLimitChange(botToken, chatId, parts, senderName, action) {
   if (parts.length < 3) {
-    return sendMsg(botToken, chatId, `❌ *Format salah!*\n\n*Format:* /${action === 'add' ? 'addlimit' : 'rdlimit'} <username> <jumlah>\n*Contoh:* /${action === 'add' ? 'addlimit' : 'rdlimit'} budi 50`);
+    return sendMsg(botToken, chatId, `❌ *Format salah!*\n\n*Format:* /${action === 'add' ? 'addlimit' : 'dellimit'} <username> <jumlah>\n*Contoh:* /${action === 'add' ? 'addlimit' : 'dellimit'} Zyxell 50`);
   }
   
   const targetUser = parts[1];
@@ -762,7 +762,7 @@ function helpText() {
     '📌 /status — cek status web\n\n' +
     '*👥 Manajemen User:*\n' +
     '📌 /addlimit <username> <jumlah> — tambah limit kuota\n' +
-    '📌 /rdlimit <username> <jumlah> — kurangi limit kuota\n\n' +
+    '📌 /dellimit <username> <jumlah> — kurangi limit kuota\n\n' +
     '*🎟️ Voucher:*\n' +
     '📌 /ctvoucher <kode> <tipe> <jumlah> <max>\n' +
     '📌 /listvoucher — lihat 25 voucher terakhir\n' +
@@ -1262,7 +1262,7 @@ function helpText() {
                <b style="color:var(--text-main);">👥 Manajemen User</b><br>
                <code>/addlimit budi 50</code><br>
                ↳ Tambah limit +50 untuk user `budi`.<br>
-               <code>/rdlimit budi 50</code><br>
+               <code>/dellimit budi 50</code><br>
                ↳ Kurangi limit user `budi` sebanyak 50.<br><br>
 
                <b style="color:var(--text-main);">🎟️ Manajemen Voucher</b><br>
