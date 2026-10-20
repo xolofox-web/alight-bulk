@@ -429,6 +429,7 @@ export default async function handler(req, res) {
     switch (command) {
       case '/start':
       case '/help':
+      case '/allmenu':
         await sendMsg(botToken, chatId, helpText());
         break;
       case '/ctvoucher':
