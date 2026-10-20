@@ -3,56 +3,60 @@ import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 
 export default async function handler(req, res) {
-  // 1. Tangani error 405: Izinkan GET agar log bersih, tapi hanya proses POST
   if (req.method === 'GET') {
-    return res.status(200).send('Webhook is active. Please use POST.');
-  }
-  if (req.method !== 'POST') {
-    return res.status(200).send('OK'); 
+    return res.status(200).send('Webhook is active.');
   }
 
   try {
-    // 2. Pastikan Environment Variable tersedia
+    console.log("--- Menerima pesan dari Telegram ---");
+
+    // 1. Cek Environment Variables
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_ANON_KEY;
     const token = process.env.TELEGRAM_BOT_TOKEN;
 
     if (!supabaseUrl || !supabaseKey || !token) {
-      console.error("Environment variables missing");
+      console.error("❌ ERROR: Environment Variables (SUPABASE_URL, SUPABASE_ANON_KEY, atau TELEGRAM_BOT_TOKEN) belum diatur di Vercel!");
+      return res.status(200).send('OK');
+    }
+    
+    console.log("✅ Environment Variables terbaca.");
+
+    // 2. Ambil data pesan
+    const { message } = req.body;
+    if (!message || !message.text) {
+      console.log("⚠️ Pesan kosong atau bukan teks.");
       return res.status(200).send('OK');
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    const { message } = req.body;
-
-    // Abaikan jika bukan pesan teks
-    if (!message || !message.text) return res.status(200).send('OK');
-
     const chatId = message.chat.id;
     let text = message.text.trim();
+    console.log(`Chat ID: ${chatId} | Pesan: ${text}`);
 
-    // Fungsi kirim pesan ke Telegram dengan batas waktu (timeout) 5 detik
+    // 3. Fungsi Kirim Pesan ke Telegram
     const sendMessage = async (msg) => {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
       try {
-        await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        console.log(`Mencoba membalas ke Telegram: ${msg}`);
+        const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: chatId, text: msg, parse_mode: 'HTML' }),
-          signal: controller.signal
+          body: JSON.stringify({ chat_id: chatId, text: msg, parse_mode: 'HTML' })
         });
+        const resData = await response.json();
+        if (!resData.ok) {
+          console.error("❌ Telegram menolak pesan:", resData.description);
+        } else {
+          console.log("✅ Balasan sukses terkirim ke Telegram.");
+        }
       } catch (e) {
-        console.error('Gagal kirim pesan Telegram:', e.message);
-      } finally {
-        clearTimeout(timeoutId);
+        console.error('❌ Gagal koneksi ke API Telegram:', e.message);
       }
     };
 
     // Bersihkan teks jika formatnya /register@NamaBot
     if (text.includes('@')) text = text.split('@')[0];
 
-    // Logika Perintah
+    // 4. Logika Perintah
     if (text.startsWith('/register')) {
       const args = text.split(' ');
       
@@ -65,11 +69,13 @@ export default async function handler(req, res) {
       const email = args[2];
       const password = args[3];
 
-      // Hash Password
+      const supabase = createClient(supabaseUrl, supabaseKey);
+      
       const salt = bcrypt.genSaltSync(10);
       const hashedPassword = bcrypt.hashSync(password, salt);
 
-      // Langsung INSERT (tanpa cek duplikat manual agar cepat)
+      console.log("Mencoba menyimpan ke Supabase...");
+      
       const { error } = await supabase.from('users').insert([{
         username: username,
         email: email,
@@ -84,14 +90,14 @@ export default async function handler(req, res) {
       }]);
 
       if (error) {
-        // Kode 23505 = Duplicate Key (Username/Email sudah ada)
+        console.error("❌ Supabase Error:", error.message);
         if (error.code === '23505') {
           await sendMessage('❌ <b>Gagal!</b>\nUsername atau Email sudah terdaftar.');
         } else {
-          console.error('Supabase Error:', error);
-          await sendMessage('❌ Gagal menyimpan ke database.');
+          await sendMessage(`❌ Gagal database: ${error.message}`);
         }
       } else {
+        console.log("✅ User berhasil didaftarkan via bot.");
         await sendMessage(`✅ <b>Pendaftaran Berhasil!</b>\n\nUsername: <b>${username}</b>\nEmail: <b>${email}</b>\n\nSilakan login ke website.`);
       }
       
@@ -99,11 +105,10 @@ export default async function handler(req, res) {
       await sendMessage('👋 <b>Selamat Datang!</b>\n\nUntuk daftar ketik:\n<code>/register username email password</code>');
     }
 
-    // Wajib membalas 200 OK secepat mungkin
     return res.status(200).send('OK');
 
   } catch (error) {
-    console.error('Webhook Fatal Error:', error);
+    console.error('❌ Webhook Fatal Error:', error);
     return res.status(200).send('OK'); 
   }
 }
