@@ -49,7 +49,6 @@ module.exports = async function handler(req, res) {
     switch (command) {
       case '/start':
       case '/help':
-      case '/allmenu';
         await sendMsg(botToken, chatId, helpText());
         break;
       case '/close':
@@ -305,5 +304,5 @@ function helpText() {
     '📌 /delvoucher <kode> — hapus voucher\n\n' +
     '*📊 Lainnya:*\n' +
     '📌 /stats — statistik website\n' +
-    '📌 /allmenu — menampilkan semua menu';
+    '📌 /help — menu bantuan';
 }
