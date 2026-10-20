@@ -1,32 +1,37 @@
 // api/proxy.js
 export default async function handler(req, res) {
-  // Ambil parameter dari frontend (TANPA API KEY)
   const { path, email, link, count } = req.query;
+  const API_KEY = process.env.ALIGHTMOTION_API_KEY || req.query.apikey;
+
+  if (!API_KEY) {
+    return res.status(400).json({ error: 'API Key tidak ditemukan' });
+  }
+
+  // GANTI URL INI dengan URL API Alight Motion yang benar
+  let targetUrl = `https://api.alightmotion-target.com${path}?apikey=${API_KEY}`;
   
-  // AMBIL DARI ENVIRONMENT VARIABEL VERCEL
-  const API_KEY = process.env.ALIGHTMOTION_API_KEY;
+  if (email) targetUrl += `&email=${encodeURIComponent(email)}`;
+  if (link) targetUrl += `&link=${encodeURIComponent(link)}`;
+  if (count) targetUrl += `&count=${encodeURIComponent(count)}`;
 
   try {
-    // GANTI URL INI dengan URL API asli yang Anda gunakan
-    let targetUrl = `https://api.asli-target-anda.com${path}?apikey=${API_KEY}`;
-    
-    // Teruskan parameter lain jika ada
-    if (email) targetUrl += `&email=${encodeURIComponent(email)}`;
-    if (link) targetUrl += `&link=${encodeURIComponent(link)}`;
-    if (count) targetUrl += `&count=${encodeURIComponent(count)}`;
-
-    const response = await fetch(targetUrl);
-    
-    // Cek jika respon bukan JSON (misal error HTML)
-    const contentType = response.headers.get("content-type");
-    if (!contentType || !contentType.includes("application/json")) {
-        throw new Error(`API membalas dengan format tidak dikenal (HTTP ${response.status})`);
-    }
+    const response = await fetch(targetUrl, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    });
 
     const data = await response.json();
-    res.status(200).json(data);
+    return res.status(200).json(data);
     
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    // Mencetak error asli ke Log Vercel (DNS, Timeout, SSL, dll)
+    console.error("FETCH FAILED DETAIL:", error.cause || error.message);
+    
+    return res.status(500).json({ 
+      error: `fetch failed`, 
+      detail: error.cause ? error.cause.message : error.message 
+    });
   }
 }
