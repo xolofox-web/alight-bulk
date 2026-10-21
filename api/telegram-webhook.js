@@ -595,5 +595,5 @@ function helpText() {
     '📌 /cekvoucher (kode) — cek pengguna voucher\n\n' +
     '📊 Lainnya:\n' +
     '📌 /stats — statistik website\n' +
-    '📌 /allmenu — menu bantuan ini';
+    '📌 /allmenu — menampilkan semua menu';
 }
