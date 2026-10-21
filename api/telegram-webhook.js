@@ -602,7 +602,7 @@ function helpText() {
     '📌 /topup (username) (jumlah) — tambah saldo\n\n' +
     '🎫 Tiket Support:\n' +
     '📌 /reply (id_tiket) (pesan) — balas tiket user\n\n' +
-    '🎟️ Voucher:*l\n' +
+    '🎟️ Voucher:\n' +
     '📌 /ctvoucher (kode) (tipe) (jumlah) (max)\n' +
     '📌 /listvoucher — lihat 25 voucher terakhir\n' +
     '📌 /delvoucher (kode) — hapus voucher\n' +
