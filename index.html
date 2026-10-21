@@ -3006,7 +3006,7 @@ loginForm.addEventListener('submit', async e => {
     try { await supabaseClient.from('login_logs').insert([{ username, ip_address: userIp }]); } catch(err) {}
 
     // Kirim notifikasi login ke Telegram
-    fetch('/api/send-telegram', {
+    fetch('/api/telegram-webhook', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
@@ -3106,7 +3106,7 @@ registerForm.addEventListener('submit', async e => {
     saveUser(state.user);
 
     // Kirim notifikasi daftar ke Telegram
-    fetch('/api/send-telegram', {
+    fetch('/api/telegram-webhook', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
