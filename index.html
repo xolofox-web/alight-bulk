@@ -578,7 +578,7 @@ async function handleCekVoucher(botToken, chatId, parts) {
 
 /* ============ FITUR BARU: /setvip & /setfree ============ */
 async function handleSetVip(botToken, chatId, parts, senderName) {
-  if (parts.length < 2) return sendMsg(botToken, chatId, '❌ Format: `/setvip <username> [hari]`\nContoh: `/setvip budi 30`');
+  if (parts.length < 2) return sendMsg(botToken, chatId, '❌ Format: `/setvip <username> [hari]`\nContoh: `/setvip Zyxell 30`');
   const targetUser = parts[1];
   const days = parseInt(parts[2]) || 30;
   const expiredAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
@@ -605,7 +605,7 @@ async function handleSetTier(botToken, chatId, parts, senderName, tier) {
 /* ============ /addlimit & /rdlimit ============ */
 async function handleLimitChange(botToken, chatId, parts, senderName, action) {
   if (parts.length < 3) {
-    return sendMsg(botToken, chatId, `❌ *Format salah!*\n\n*Format:* /${action === 'add' ? 'addlimit' : 'rdlimit'} <username> <jumlah>\n*Contoh:* /${action === 'add' ? 'addlimit' : 'rdlimit'} budi 50`);
+    return sendMsg(botToken, chatId, `❌ *Format salah!*\n\n*Format:* /${action === 'add' ? 'addlimit' : 'rdlimit'} <username> <jumlah>\n*Contoh:* /${action === 'add' ? 'addlimit' : 'rdlimit'} Zyxell 50`);
   }
   
   const targetUser = parts[1];
@@ -1378,8 +1378,8 @@ function helpText() {
                <code>/status</code> — cek status web saat ini.<br><br>
 
                <b style="color:var(--text-main);">👥 Manajemen User</b><br>
-               <code>/addlimit budi 50</code><br>
-               ↳ Tambah limit +50 untuk user `budi`.<br>
+               <code>/addlimit Zyxell 50</code><br>
+               ↳ Tambah limit +50 untuk user `Zyxell`.<br>
                <code>/rdlimit Zyxell 50</code><br>
                ↳ Kurangi limit user `Zyxell` sebanyak 50.<br><br>
 
