@@ -1380,8 +1380,8 @@ function helpText() {
                <b style="color:var(--text-main);">👥 Manajemen User</b><br>
                <code>/addlimit budi 50</code><br>
                ↳ Tambah limit +50 untuk user `budi`.<br>
-               <code>/rdlimit budi 50</code><br>
-               ↳ Kurangi limit user `budi` sebanyak 50.<br><br>
+               <code>/rdlimit Zyxell 50</code><br>
+               ↳ Kurangi limit user `Zyxell` sebanyak 50.<br><br>
 
                <b style="color:var(--text-main);">🎟️ Manajemen Voucher</b><br>
                <code>/ctvoucher ZYXELL50 kuota 50 100</code><br>
@@ -1624,8 +1624,8 @@ if (!bcrypt) console.error('Library Bcrypt gagal dimuat.');
 /* ==============================================================
    1. KONFIGURASI SUPABASE
 ============================================================== */
-const SUPABASE_URL = 'MASUKKAN_PROJECT_URL_ANDA_DI_SINI';
-const SUPABASE_ANON_KEY = 'MASUKKAN_ANON_KEY_ANDA_DI_SINI';
+const SUPABASE_URL = 'https://vybtsbrwhklyoabqrxec.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_1rexSzKxuhwHHBTrSmZqNw_tF1fKacR';
 
 if (SUPABASE_URL.includes('MASUKKAN') || SUPABASE_ANON_KEY.includes('MASUKKAN')) {
   console.warn('PERINGATAN: Anda belum mengisi SUPABASE_URL dan SUPABASE_ANON_KEY!');
