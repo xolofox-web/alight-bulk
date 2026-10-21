@@ -583,7 +583,7 @@ async function sendMsg(token, chatId, text) {
 }
 
 function helpText() {
-  return '🤖 ZYXELL BULK — ADMIN BOT\n\n' +
+  return '🤖 CONTROL PANEL\n\n' +
     '🌐 Kontrol Website:\n' +
     '📌 /menu — tampilkan tombol interaktif\n' +
     '📌 /close (pesan) — tutup web\n' +
