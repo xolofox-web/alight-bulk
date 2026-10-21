@@ -167,7 +167,7 @@ async function handleReplyTicket(botToken, chatId, text) {
 /* ============ /addlimit & /rdlimit ============ */
 async function handleLimitChange(botToken, chatId, parts, senderName, action) {
   if (parts.length < 3) {
-    return sendMsg(botToken, chatId, `❌ *Format salah!*\n\n*Format:* /${action === 'add' ? 'addlimit' : 'rdlimit'} <username> <jumlah>\n*Contoh:* /${action === 'add' ? 'addlimit' : 'rdlimit'} budi 50`);
+    return sendMsg(botToken, chatId, `❌ *Format salah!*\n\n*Format:* /${action === 'add' ? 'addlimit' : 'rdlimit'} <username> <jumlah>\n*Contoh:* /${action === 'add' ? 'addlimit' : 'rdlimit'} Zyxell 50`);
   }
   
   const targetUser = parts[1];
@@ -215,7 +215,7 @@ async function handleLimitChange(botToken, chatId, parts, senderName, action) {
 /* ============ /userinfo ============ */
 async function handleUserInfo(botToken, chatId, parts) {
   if (parts.length < 2) {
-    return sendMsg(botToken, chatId, '❌ *Format salah!*\n\n*Format:* /userinfo <username>\n*Contoh:* /userinfo budi');
+    return sendMsg(botToken, chatId, '❌ *Format salah!*\n\n*Format:* /userinfo <username>\n*Contoh:* /userinfo Zyxell');
   }
   
   const targetUser = parts[1];
