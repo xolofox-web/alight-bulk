@@ -1625,7 +1625,7 @@ async function logAdminAction(action) {
 /* ============ FITUR #2: NOTIFIKASI WEB KE TELEGRAM ============ */
 async function notifyTelegram(message) {
   try {
-    await fetch('/api/send-telegram', {
+    await fetch('/api/telegram-webhook', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message })
