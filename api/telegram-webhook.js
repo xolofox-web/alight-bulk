@@ -572,11 +572,11 @@ async function sendMsg(token, chatId, text) {
 
 function helpText() {
   return '🤖 *ZYXELL BULK — ADMIN BOT*\n\n' +
-    '*🌐 Kontrol Website:*\n' +
+    '🌐 Kontrol Website:\n' +
     '📌 /close (pesan) — tutup web\n' +
     '📌 /open — buka web kembali\n' +
     '📌 /status — cek status web\n\n' +
-    '*👥 Manajemen User:*\n' +
+    '👥 Manajemen User:\n' +
     '📌 /userinfo (username) — detail user\n' +
     '📌 /resetlimit (username) — reset kuota user\n' +
     '📌 /ban (username) — blokir user\n' +
@@ -586,14 +586,14 @@ function helpText() {
     '📌 /addlimit (username) (jumlah) — tambah kuota\n' +
     '📌 /rdlimit (username) (jumlah) — kurangi kuota\n' +
     '📌 /topup (username) (jumlah) — tambah saldo\n\n' +
-    '*🎫 Tiket Support:*\n' +
+    '🎫 Tiket Support:\n' +
     '📌 /reply (id_tiket) (pesan) — balas tiket user\n\n' +
-    '*🎟️ Voucher:*\n' +
+    '🎟️ Voucher:\n' +
     '📌 /ctvoucher (kode) (tipe) (jumlah) (max)\n' +
     '📌 /listvoucher — lihat 25 voucher terakhir\n' +
     '📌 /delvoucher (kode) — hapus voucher\n' +
     '📌 /cekvoucher (kode) — cek pengguna voucher\n\n' +
-    '*📊 Lainnya:*\n' +
+    '📊 Lainnya:\n' +
     '📌 /stats — statistik website\n' +
     '📌 /allmenu — menu bantuan ini';
 }
