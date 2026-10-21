@@ -819,7 +819,7 @@ function helpText() {
         <input id="login-pass" type="password" placeholder="Masukkan password Anda" required>
         
         <!-- CLOUDFLARE TURNSTILE (LOGIN) -->
-        <div class="cf-turnstile" data-sitekey="0x4AAAAAAAFcVbSv21AyDWS06" data-theme="dark" style="margin-top: 16px; display: flex; justify-content: center;"></div>
+        <div class="cf-turnstile" data-sitekey="0x4AAAAAAFcVbSv21AyDWS06" data-theme="dark" style="margin-top: 16px; display: flex; justify-content: center;"></div>
 
         <button type="submit" class="btn btn-primary btn-block" id="btn-login">Masuk ke Dashboard</button>
         <p class="hint">Belum punya akun? <a href="#" id="to-register">Buat akun baru</a></p>
@@ -834,7 +834,7 @@ function helpText() {
         <input id="reg-pass" type="password" placeholder="Buat password" required>
         
         <!-- CLOUDFLARE TURNSTILE (REGISTER) -->
-        <div class="cf-turnstile" data-sitekey="0x4AAAAAAAFcVbSv21AyDWS06" data-theme="dark" style="margin-top: 16px; display: flex; justify-content: center;"></div>
+        <div class="cf-turnstile" data-sitekey="0x4AAAAAAFcVbSv21AyDWS06" data-theme="dark" style="margin-top: 16px; display: flex; justify-content: center;"></div>
 
         <button type="submit" class="btn btn-primary btn-block" id="btn-register">Daftar Akun</button>
         <p class="hint">Sudah punya akun? <a href="#" id="to-login">Kembali masuk</a></p>
@@ -1543,8 +1543,8 @@ if (!bcrypt) console.error('Library Bcrypt gagal dimuat.');
 /* ==============================================================
    1. KONFIGURASI SUPABASE
 ============================================================== */
-const SUPABASE_URL = 'MASUKKAN_PROJECT_URL_ANDA_DI_SINI';
-const SUPABASE_ANON_KEY = 'MASUKKAN_ANON_KEY_ANDA_DI_SINI';
+const SUPABASE_URL = 'https://vybtsbrwhklyoabqrxec.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_1rexSzKxuhwHHBTrSmZqNw_tF1fKacR';
 
 if (SUPABASE_URL.includes('MASUKKAN') || SUPABASE_ANON_KEY.includes('MASUKKAN')) {
   console.warn('PERINGATAN: Anda belum mengisi SUPABASE_URL dan SUPABASE_ANON_KEY!');
