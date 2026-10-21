@@ -528,7 +528,7 @@ module.exports = async function handler(req, res) {
 /* ============ /addlimit & /rdlimit ============ */
 async function handleLimitChange(botToken, chatId, parts, senderName, action) {
   if (parts.length < 3) {
-    return sendMsg(botToken, chatId, `❌ *Format salah!*\n\n*Format:* /${action === 'add' ? 'addlimit' : 'rdlimit'} <username> <jumlah>\n*Contoh:* /${action === 'add' ? 'addlimit' : 'rdlimit'} budi 50`);
+    return sendMsg(botToken, chatId, `❌ *Format salah!*\n\n*Format:* /${action === 'add' ? 'addlimit' : 'rdlimit'} <username> <jumlah>\n*Contoh:* /${action === 'add' ? 'addlimit' : 'rdlimit'} Zyxellb50`);
   }
   
   const targetUser = parts[1];
@@ -1298,9 +1298,9 @@ function helpText() {
 
                <b style="color:var(--text-main);">👥 Manajemen User</b><br>
                <code>/addlimit budi 50</code><br>
-               ↳ Tambah limit +50 untuk user `budi`.<br>
-               <code>/rdlimit budi 50</code><br>
-               ↳ Kurangi limit user `budi` sebanyak 50.<br><br>
+               ↳ Tambah limit +50 untuk user `Zyxell`.<br>
+               <code>/rdlimit Zyxell 50</code><br>
+               ↳ Kurangi limit user `Zyxell` sebanyak 50.<br><br>
 
                <b style="color:var(--text-main);">🎟️ Manajemen Voucher</b><br>
                <code>/ctvoucher ZYXELL50 kuota 50 100</code><br>
