@@ -483,7 +483,6 @@ module.exports = async function handler(req, res) {
     switch (command) {
       case '/start':
       case '/help':
-      case '/allmenu':
         await sendMsg(botToken, chatId, helpText());
         break;
       case '/close':
@@ -529,7 +528,7 @@ module.exports = async function handler(req, res) {
         await handleStats(botToken, chatId);
         break;
       default:
-        await sendMsg(botToken, chatId, '❓ Command ' + command + ' tidak dikenal.\n\nKetik /allmenu untuk melihat daftar command.');
+        await sendMsg(botToken, chatId, '❓ Command ' + command + ' tidak dikenal.\n\nKetik /help untuk melihat daftar command.');
     }
 
     return res.status(200).json({ ok: true });
@@ -877,7 +876,7 @@ function helpText() {
     '📌 /cekvoucher <kode> — cek siapa yang pakai\n\n' +
     '*📊 Lainnya:*\n' +
     '📌 /stats — statistik website\n' +
-    '📌 /allmenu — menu bantuan ini';
+    '📌 /help — menu bantuan ini';
 }
 </textarea>
 
@@ -1393,7 +1392,7 @@ function helpText() {
 
                <b style="color:var(--text-main);">📊 Lainnya</b><br>
                <code>/stats</code> — statistik website.<br>
-               <code>/allmenu</code> — menu bantuan.
+               <code>/help</code> — menu bantuan.
              </div>
 
              <button class="btn btn-ghost btn-block" id="view-backend-btn" style="margin-top:16px;">📦 Lihat & Copy Backend Code (api/telegram-webhook.js)</button>
