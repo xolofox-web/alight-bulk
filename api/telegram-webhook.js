@@ -571,7 +571,7 @@ async function sendMsg(token, chatId, text) {
 }
 
 function helpText() {
-  return '🤖 *ZYXELL BULK — ADMIN BOT*\n\n' +
+  return '🤖 ZYXELL BULK — ADMIN BOT\n\n' +
     '🌐 Kontrol Website:\n' +
     '📌 /close (pesan) — tutup web\n' +
     '📌 /open — buka web kembali\n' +
