@@ -416,7 +416,7 @@ input:checked + .slider:before { transform: translateX(20px); }
   <div class="modal-content">
     <h3>Verifikasi 2FA</h3>
     <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">Masukkan 6 angka yang dikirim ke Bot Telegram Admin.</p>
-    <input type="text" id="otp-input" maxlength="6" placeholder="Contoh: 123456" style="text-align:center; font-size:20px; letter-spacing:5px;">
+    <input type="text" id="otp-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Contoh: 123456" style="text-align:center; font-size:20px; letter-spacing:5px;">
     <button class="btn btn-primary btn-block" onclick="verifyOTP()" id="btn-verify-otp">Verifikasi</button>
   </div>
 </div>
