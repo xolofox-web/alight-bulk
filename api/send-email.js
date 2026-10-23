@@ -16,7 +16,7 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'Email dan magicLink wajib diisi' });
   }
 
-  // Validasi format email menggunakan 
+  // Validasi format email menggunakan Regex
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
     return res.status(400).json({ error: 'Format email tidak valid' });
