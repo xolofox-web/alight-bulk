@@ -3529,7 +3529,7 @@ window.handleLoginSubmit = async function(e) {
     
     // ============ [FITUR BARU: BATASAN LOGIN PER IP] ============
     // Ubah angka 1 menjadi jumlah maksimal akun yang bisa terdaftar dari 1 IP
-    const maxLoginPerIP = 1; 
+    const maxLoginPerIP = 5; 
     const { count: ipLoginCount } = await supabaseClient
         .from('users')
         .select('*', { count: 'exact', head: true })
