@@ -3864,20 +3864,6 @@ window.handleLoginSubmit = async function(e) {
     }
     // ==========================================================
 
-    // ============ [FITUR BARU: BATASAN LOGIN PER IP] ============
-    // Ubah angka 1 menjadi jumlah maksimal akun yang bisa terdaftar dari 1 IP
-    const maxLoginPerIP = 2; 
-    const { count: ipLoginCount } = await supabaseClient
-        .from('users')
-        .select('*', { count: 'exact', head: true })
-        .eq('ip_address', userIp)
-        .neq('username', username); // Jangan hitung akun yang sedang login ini
-
-    if (ipLoginCount >= maxLoginPerIP) {
-        throw new Error(`Login ditolak. Maksimal ${maxLoginPerIP} akun yang diizinkan login dari 1 IP Address.`);
-    }
-    // ==========================================================
-
     const { data: bannedIp } = await supabaseClient.from('banned_ips').select('ip').eq('ip', userIp).maybeSingle();
     if (bannedIp) throw new Error('IP Address Anda telah diblokir oleh sistem (Anti-Spam).');
 
