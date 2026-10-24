@@ -4115,14 +4115,14 @@ window.handleRegisterSubmit = async function(e) {
 // FITUR AUTO-LOGOUT KARENA TIDAK ADA AKTIVITAS (IDLE TIMER)
 // ==============================================================================
 let idleTimer;
-const IDLE_TIMEOUT_MS = 20000; 
+const IDLE_TIMEOUT_MS = 600000; 
 
 function resetIdleTimer() {
     clearTimeout(idleTimer);
     if (state.user && !state.user.isAdmin) {
         idleTimer = setTimeout(async () => {
             await logout();
-            toast('Sesi berakhir karena tidak ada aktivitas selama 20 detik.', 'error');
+            toast('Sesi berakhir karena tidak ada aktivitas selama 10 menit.', 'error');
         }, IDLE_TIMEOUT_MS);
     }
 }
