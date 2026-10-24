@@ -1,12 +1,12 @@
 {
   "crons": [
     {
-      "path": "/api/cron-backup",
+      "path": "/api/cron-reset",
       "schedule": "0 0 * * *"
     },
     {
-      "path": "/api/cron-reset",
-      "schedule": "0 0 * * *"
+      "path": "/api/cron-queue",
+      "schedule": "* * * * *"
     }
   ],
   "rewrites": [
