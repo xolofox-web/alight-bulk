@@ -4049,8 +4049,8 @@ window.handleRegisterSubmit = async function(e) {
     if (bannedIp) throw new Error('IP Address Anda telah diblokir oleh sistem (Anti-Spam).');
 
     const { count: ipCount } = await supabaseClient.from('users').select('*', { count: 'exact', head: true }).eq('ip_address', userIp);
-    if (ipCount >= 3) {
-      throw new Error('Batas maksimal 3 akun per IP Address telah tercapai.');
+    if (ipCount >= 5) {
+      throw new Error('Batas maksimal 5 akun per IP Address telah tercapai.');
     }
 
     const { data: existingUser } = await withTimeout(supabaseClient.from('users').select('username').eq('username', username).single());
