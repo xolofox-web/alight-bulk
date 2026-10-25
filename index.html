@@ -2385,7 +2385,7 @@ async function apiCall(endpoint, params) {
 }
 
 const api = {
-  send: (email) => apiCall('/am-send', { email }),
+  send: (email) => apiCall('/am-verify', { email }), // Magic Link diarahkan ke /am-verify
   verify: (email, link) => apiCall('/am-verify', { email, link }),
   bulk: (count) => apiCall('/am-bulk', { count })
 };
