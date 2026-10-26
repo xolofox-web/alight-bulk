@@ -1,16 +1,32 @@
 // api/cashi/create-order.js
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method not allowed' });
-  }
+  if (req.method !== 'POST') return res.status(405).json({ message: 'Method not allowed' });
+  const { amount, order_id, username, type } = req.body;
 
-  const { amount, order_id } = req.body;
-
-  if (!amount || !order_id) {
-    return res.status(400).json({ message: 'Amount dan order_id wajib diisi' });
+  if (!amount || !order_id || !username || !type) {
+    return res.status(400).json({ message: 'Data tidak lengkap (amount, order_id, username, type)' });
   }
 
   try {
+    // 1. SIMPAN KE DATABASE SEBELUM MEMBUAT QRIS
+    const { error: dbError } = await supabase.from('transactions').insert([{
+      order_id: order_id,
+      username: username,
+      amount: parseInt(amount),
+      type: type, // 'kuota' atau 'vip'
+      status: 'PENDING'
+    }]);
+
+    if (dbError) throw dbError;
+
+    // 2. Buat QRIS ke Cashi
     const response = await fetch('https://cashi.id/api/create-order', {
       method: 'POST',
       headers: {
@@ -25,19 +41,16 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
-
     if (!response.ok || !data.success) {
       throw new Error(data.message || 'Gagal membuat order di Cashi');
     }
 
-    // Kembalikan data QR code ke frontend
     return res.status(200).json({
       success: true,
       order_id: data.orderId,
       amount: data.amount,
       qr_url: data.qrUrl,
       checkout_url: data.checkout_url,
-      expires_at: data.expires_at,
     });
 
   } catch (error) {
