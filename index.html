@@ -2118,7 +2118,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const API_PROXY_BASE = '/api/proxy'; 
 const DIRECT_API_BASE = 'https://apikayz.clutch.web.id/tools';
-let API_KEYS = ['kayz-5rmdh0s1ma711knojqe2'];
+let API_KEYS = ['kayz-r6azlrf2ql6864c6x6uf'];
 
 const state = { user: null, currentEmail: '', history: [], tempAvatar: null, allUsers: [], editingUser: null, currentPage: 1 };
 const usersPerPage = 10;
@@ -3467,7 +3467,7 @@ document.getElementById('save-api-key-btn-status').addEventListener('click', asy
     const { error } = await supabaseClient.from('settings').upsert({ key: 'api_key', value: val });
     if (error) throw error;
     API_KEYS = val.split(',').map(k => k.trim()).filter(Boolean);
-    if (API_KEYS.length === 0) API_KEYS = ['kayz-5rmdh0s1ma711knojqe2'];
+    if (API_KEYS.length === 0) API_KEYS = ['kayz-r6azlrf2ql6864c6x6uf'];
     toast('API Key berhasil diperbarui', 'success');
     renderAdminApiStatus();
     if (document.getElementById('api-key-input')) document.getElementById('api-key-input').value = val;
@@ -3898,7 +3898,7 @@ $('save-api-key-btn').addEventListener('click', async () => {
     if (error) throw error;
     
     API_KEYS = val.split(',').map(k => k.trim()).filter(Boolean);
-    if (API_KEYS.length === 0) API_KEYS = ['kayz-5rmdh0s1ma711knojqe2'];
+    if (API_KEYS.length === 0) API_KEYS = ['kayz-r6azlrf2ql6864c6x6uf'];
 
     toast(`Berhasil menyimpan ${API_KEYS.length} API Key`, 'success');
     logAdminAction(`Memperbarui API Key (Total: ${API_KEYS.length})`);
@@ -5087,7 +5087,7 @@ async function broadcastEmail() {
         if (payload.new && payload.new.key === 'announcement') loadAnnouncement();
         if (payload.new && payload.new.key === 'api_key') {
             API_KEYS = payload.new.value.split(',').map(k => k.trim()).filter(Boolean);
-            if (API_KEYS.length === 0) API_KEYS = ['kayz-5rmdh0s1ma711knojqe2'];
+            if (API_KEYS.length === 0) API_KEYS = ['kayz-r6azlrf2ql6864c6x6uf'];
         }
         if (payload.new && payload.new.key === 'page_access') {
             try {
@@ -5203,7 +5203,7 @@ function alightMotionVerify(email, link) {
     // Menggunakan axios dari CDN yang sudah disisipkan di <head>
     axios.get('https://apikayz.clutch.web.id/tools/am-verify', {
       params: {
-        apikey: 'kayz-5rmdh0s1ma711knojqe2',
+        apikey: 'kayz-r6azlrf2ql6864c6x6uf',
         email: email,
         link: link,
       }
@@ -5219,7 +5219,7 @@ function alightMotionBulk(count) {
     // Menggunakan axios dari CDN yang sudah disisipkan di <head>
     axios.get('https://apikayz.clutch.web.id/tools/am-bulk', {
       params: {
-        apikey: 'kayz-5rmdh0s1ma711knojqe2',
+        apikey: 'kayz-r6azlrf2ql6864c6x6uf',
         count: count,
       }
     })
