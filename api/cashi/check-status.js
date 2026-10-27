@@ -27,7 +27,7 @@ export default async function handler(req, res) {
         
         if (trx.type === 'vip') {
           const expiredAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-          await supabase.from('users').update({ tier: 'VIP', limit_harian: 100, vip_expired_at: expiredAt }).eq('username', trx.username);
+          await supabase.from('users').update({ tier: 'VIP', limit_harian: 5000, vip_expired_at: expiredAt }).eq('username', trx.username);
         } else {
           const { data: user } = await supabase.from('users').select('bonus_kuota').eq('username', trx.username).single();
           await supabase.from('users').update({ bonus_kuota: (user.bonus_kuota || 0) + 50 }).eq('username', trx.username);
