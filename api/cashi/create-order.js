@@ -7,7 +7,11 @@ export default async function handler(req, res) {
   try {
     const response = await fetch('https://cashi.id/api/create-order', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-API-Key': CASHI_API_KEY },
+      headers: { 
+        'Content-Type': 'application/json', 
+        'X-API-Key': CASHI_API_KEY,
+        'Authorization': `Bearer ${CASHI_API_KEY}` // Tambahan jaga-jaga kalau Cashi pakai Bearer
+      },
       body: JSON.stringify({
         amount: amount,
         order_id: order_id,
@@ -17,17 +21,24 @@ export default async function handler(req, res) {
     });
     
     const data = await response.json();
-    if (!response.ok) throw new Error(data.message || 'Gagal request ke Cashi.id');
+    
+    // KIRIM BALIK ERROR ASLI DARI CASHI JIKA GAGAL
+    if (!response.ok) {
+        return res.status(response.status).json({ 
+            success: false, 
+            message: data.message || 'Gagal request ke Cashi.id', 
+            raw: data 
+        });
+    }
 
     const responseData = data.data || data; 
-    // Cari QR di SEMUA kemungkinan nama field
     const qrUrl = responseData.qr_url || responseData.qr_string || responseData.payment_url || responseData.qr_code || responseData.qrString || responseData.qr;
 
     if (!qrUrl) {
         return res.status(200).json({ 
             success: false, 
             message: 'Cashi.id tidak mengirim field QR.', 
-            raw: data // Kirim raw data ke frontend
+            raw: data 
         });
     }
 
