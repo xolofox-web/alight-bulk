@@ -10,23 +10,23 @@ export default async function handler(req, res) {
       headers: { 
         'Content-Type': 'application/json', 
         'X-API-Key': CASHI_API_KEY,
-        'Authorization': `Bearer ${CASHI_API_KEY}` // Tambahan jaga-jaga kalau Cashi pakai Bearer
+        'Authorization': `Bearer ${CASHI_API_KEY}` // Pake ini jaga-jaga
       },
       body: JSON.stringify({
         amount: amount,
         order_id: order_id,
         description: `Topup ${type} - ${username}`,
-        callback_url: `https://alight-bulk.vercel.app/api/payment-webhook`
+        callback_url: `https://alight-bulk.vercel.app/api/webhook` // Pastikan nama file webhook lu bener
       })
     });
     
     const data = await response.json();
     
-    // KIRIM BALIK ERROR ASLI DARI CASHI JIKA GAGAL
+    // KALO CASHI NGASIH ERROR, TAMPILIN ERROR ASLINYA DI LAYAR LU
     if (!response.ok) {
-        return res.status(response.status).json({ 
+        return res.status(200).json({ 
             success: false, 
-            message: data.message || 'Gagal request ke Cashi.id', 
+            message: `Cashi Error: ${data.message || JSON.stringify(data)}`, 
             raw: data 
         });
     }
@@ -37,7 +37,7 @@ export default async function handler(req, res) {
     if (!qrUrl) {
         return res.status(200).json({ 
             success: false, 
-            message: 'Cashi.id tidak mengirim field QR.', 
+            message: `QR Kosong. Response: ${JSON.stringify(data)}`, 
             raw: data 
         });
     }
