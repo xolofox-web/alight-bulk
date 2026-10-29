@@ -3050,20 +3050,25 @@ async function loadTransactionHistory() {
         }
         
         tbody.innerHTML = data.map(trx => {
-            const date = new Date(trx.created_at).toLocaleString('id-ID');
+            const date = trx.created_at ? new Date(trx.created_at).toLocaleString('id-ID') : '-';
             let statusBadge = '';
             let actionBtns = '';
             
-            // PENAMBAHAN PENGAMAN: Jika plan_type kosong, gunakan string default
-            const safePlanType = trx.plan_type ? trx.plan_type : 'unknown';
-            const displayPlan = safePlanType.toUpperCase();
-            
+            // PENGAMAN: Cek tipe plan dan sesuaikan tampilannya
+            let displayPlan = 'UNKNOWN';
+            if (trx.plan_type === 'vip') displayPlan = 'VIP';
+            else if (trx.plan_type === 'kuota') displayPlan = 'BOOSTER';
+            else if (trx.plan_type) displayPlan = trx.plan_type.toUpperCase();
+
+            // PENGAMAN: Cek nama produk
+            const displayProduct = trx.product_name || 'Paket Zyxell';
+
             if (trx.status === 'success') {
                 statusBadge = '<span class="badge-status active">Berhasil</span>';
             } else if (trx.status === 'pending') {
                 statusBadge = '<span class="badge-status" style="background:rgba(234, 179, 8, 0.1); color:#eab308;">Pending</span>';
                 actionBtns = `
-                    <button class="btn btn-primary btn-sm" onclick="resumePaymentFromHistory('${trx.order_id}', ${trx.amount}, '${safePlanType}')">Bayar</button>
+                    <button class="btn btn-primary btn-sm" onclick="resumePaymentFromHistory('${trx.order_id}', ${trx.amount}, '${trx.plan_type}')">Bayar</button>
                     <button class="btn btn-danger btn-sm" onclick="cancelPaymentFromHistory('${trx.order_id}')">Batalkan</button>
                 `;
             } else {
@@ -3074,8 +3079,8 @@ async function loadTransactionHistory() {
             <tr>
                 <td>${date}</td>
                 <td><code>${trx.order_id || '-'}</code></td>
-                <td>${trx.product_name || 'Produk'}</td>
-                <td><span class="badge-tier ${safePlanType === 'vip' ? 'vip' : 'free'}">${displayPlan}</span></td>
+                <td>${displayProduct}</td>
+                <td><span class="badge-tier ${trx.plan_type === 'vip' ? 'vip' : 'free'}">${displayPlan}</span></td>
                 <td>${formatRupiah(trx.amount || 0)}</td>
                 <td>${statusBadge}</td>
                 <td style="text-align: right;">
@@ -3087,11 +3092,9 @@ async function loadTransactionHistory() {
         
     } catch (e) {
         console.error("Error loading transactions:", e);
-        let errorMsg = e.message || 'Pastikan tabel "transactions" sudah dibuat.';
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--danger);">Gagal memuat: ${errorMsg}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--danger);">Gagal memuat data transaksi.</td></tr>`;
     }
   }
-
 function resumePaymentFromHistory(orderId, amount, type) {
     initiateQrisPayment(amount, type, orderId);
 }
