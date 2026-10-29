@@ -1,6 +1,5 @@
-// api/cashi/webhook.js
-import crypto from 'crypto';
-import { createClient } from '@supabase/supabase-js';
+const crypto = require('crypto');
+const { createClient } = require('@supabase/supabase-js');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -8,72 +7,53 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  // Buka akses CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-gateway-signature');
+  if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  const signature = req.headers['x-gateway-signature'] || req.headers['x-cashi-signature'];
   
-  if (req.method === 'GET') {
-    return res.status(200).json({ status: 'active', message: 'Webhook Ready' });
-  }
+  if (!signature) return res.status(401).send('Missing signature');
 
-  if (req.method === 'POST') {
-    try {
-      // CEK 1: Apakah Secret Key ada di Vercel?
-      if (!process.env.CASHI_SECRET_KEY) {
-        console.error("ERROR FATAL: CASHI_SECRET_KEY tidak ada di Environment Variables Vercel!");
-        // Tetap balas 200 OK agar Cashi mau menyimpan Webhook-nya
-        return res.status(200).json({ message: 'Webhook saved, but Secret Key is missing in server.' });
-      }
+  const secret = process.env.GATEWAY_SECRET_KEY || 'YOUR_SECRET_KEY';
+  const payload = JSON.stringify(req.body);
+  
+  const expected = crypto.createHmac('sha256', secret).update(payload).digest('hex');
 
-      // CEK 2: Apakah ini request dari Cashi?
-      const signature = req.headers['x-gateway-signature'];
-      
-      // Jika tidak ada signature, anggap ini Test Ping dari Dashboard Cashi
-      if (!signature) {
-        return res.status(200).json({ message: 'Test Ping OK.' });
-      }
+  if (signature !== expected) return res.status(401).send('Invalid signature');
 
-      // Verifikasi Signature
-      const payload = JSON.stringify(req.body);
-      const expected = crypto.createHmac('sha256', process.env.CASHI_SECRET_KEY).update(payload).digest('hex');
-      
-      if (signature !== expected) {
-        return res.status(401).json({ message: 'Invalid signature' });
-      }
+  const { event, data } = req.body;
 
-      // PROSES DATA PEMBAYARAN
-      const { event, data } = req.body;
-      if (event === 'PAYMENT_SETTLED' && data.status === 'SETTLED') {
-        const orderId = data.order_id;
-        
-        const { data: trx, error: trxErr } = await supabase.from('transactions').select('*').eq('order_id', orderId).single();
-        if (trxErr || !trx) return res.status(200).json({ message: 'Transaksi tidak ditemukan (abaikan)' });
-        if (trx.status === 'SUCCESS') return res.status(200).json({ message: 'Sudah diproses' });
-
-        // Ubah status
-        await supabase.from('transactions').update({ status: 'SUCCESS' }).eq('order_id', orderId);
-
-        // Beri Hadiah
-        if (trx.type === 'vip') {
-          const expiredAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-          await supabase.from('users').update({ tier: 'VIP', limit_harian: 5000, vip_expired_at: expiredAt }).eq('username', trx.username);
-        } else {
-          const { data: user } = await supabase.from('users').select('bonus_kuota').eq('username', trx.username).single();
-          await supabase.from('users').update({ bonus_kuota: (user.bonus_kuota || 0) + 1000 }).eq('username', trx.username);
-        }
-        return res.status(200).json({ message: 'OK' });
-      }
-      return res.status(200).json({ message: 'Event ignored' });
-
-    } catch (error) {
-      // JIKA ADA ERROR LAIN, LOG DI VERCEL TAPI JANGAN CRASH
-      console.error("Webhook Error:", error.message);
-      return res.status(200).json({ message: 'Internal error handled' });
+  if (event === 'PAYMENT_SETTLED' || event === 'payment.success') {
+    if (data.order_id?.startsWith('TEST-')) {
+      return res.status(200).send('Test OK');
     }
-  }
 
-  return res.status(405).json({ message: 'Method not allowed' });
+    if (data.status === 'SETTLED' || data.status === 'SUCCESS') {
+      try {
+        const { data: trxData, error: getTrxError } = await supabase
+          .from('transactions').select('username, plan_type, amount').eq('order_id', data.order_id).single();
+
+        if (getTrxError || !trxData) {
+            console.warn('Transaksi tidak ditemukan:', data.order_id);
+            return res.status(200).send('Transaksi tidak ditemukan, diabaikan.');
+        }
+
+        await supabase.from('transactions').update({ status: 'success' }).eq('order_id', data.order_id);
+
+        if (trxData.plan_type === 'vip') {
+          const expiredAt = new Date(); expiredAt.setDate(expiredAt.getDate() + 30);
+          await supabase.from('users').update({ tier: 'VIP', limit_harian: 5000, vip_expired_at: expiredAt.toISOString() }).eq('username', trxData.username);
+        } else {
+          const { data: userData } = await supabase.from('users').select('bonus_kuota').eq('username', trxData.username).single();
+          await supabase.from('users').update({ bonus_kuota: (userData?.bonus_kuota || 0) + 1000 }).eq('username', trxData.username);
+        }
+        res.status(200).send('OK');
+      } catch (err) {
+        res.status(500).send('Internal Server Error');
+      }
+    } else {
+      res.status(200).send('Status not SETTLED');
+    }
+  } else {
+    res.status(200).send('Event ignored');
+  }
 }
