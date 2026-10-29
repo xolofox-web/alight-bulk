@@ -2941,13 +2941,17 @@ async function initiateQrisPayment(amount, type, existingOrderId = null) {
       
       // Fetch dari database untuk QR URL
       const { data: trx } = await supabaseClient.from('transactions').select('qr_url').eq('order_id', existingOrderId).single();
-      if (trx && trx.qr_url) {
-          document.getElementById('qris-image').src = trx.qr_url;
-      } else {
-          document.getElementById('qris-image').src = 'https://via.placeholder.com/250x250?text=QR+Code+Error';
-      }
       
-      startQrisCountdown(); // Default 15 min countdown
+      let qrSource = trx?.qr_url;
+      if (!qrSource) {
+          qrSource = 'https://via.placeholder.com/250x250?text=QR+Tidak+Ditemukan';
+      } else if (!qrSource.startsWith('http') && !qrSource.startsWith('data:image')) {
+          // Kalau yang kesimpen cuma string raw, convert ke gambar
+          qrSource = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrSource)}`;
+      }
+      document.getElementById('qris-image').src = qrSource;
+      
+      startQrisCountdown();
       pollPaymentStatus(existingOrderId);
       return;
   }
@@ -2981,16 +2985,41 @@ async function initiateQrisPayment(amount, type, existingOrderId = null) {
             body: JSON.stringify({ amount, order_id: orderId, username: state.user.username, type })
         });
         data = await res.json();
-        if (!res.ok || !data.success) throw new Error(data.message || 'API Gagal');
-        } catch (apiError) {
-            throw new Error('Gagal membuat QRIS: ' + apiError.message); 
-  }
+        
+        // Cek error dari backend
+        if (!res.ok || !data.success) {
+            throw new Error(data.message || 'Gagal membuat order ke Payment Gateway');
+        }
+    } catch (apiError) {
+        throw new Error('Gagal memuat QRIS: ' + apiError.message);
+    }
 
     document.getElementById('qris-loading').style.display = 'none';
     document.getElementById('qris-content').style.display = 'block';
     
+    // --- FIX BAGIAN GAMBAR QRIS ---
+    // Kadang Cashier ngasih qr_url, kadang cuma qr_string (teks)
+    let qrSource = data.qr_url || data.data?.qr_url || data.qr_string || data.data?.qr_string;
+    
+    if (!qrSource) {
+        document.getElementById('qris-status-box').className = 'qris-status-wrapper error';
+        document.getElementById('qris-status-text').textContent = 'QR Code tidak valid dari server';
+        throw new Error('Backend tidak mengirim data QR (qr_url/qr_string kosong).');
+    }
+
+    // Kalau isinya bukan link (berarti raw string), ubah jadi gambar pake API QR Server
+    if (!qrSource.startsWith('http') && !qrSource.startsWith('data:image')) {
+        qrSource = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrSource)}`;
+    }
+
     const qrImage = document.getElementById('qris-image');
-    qrImage.src = data.qr_url;
+    qrImage.src = qrSource;
+    qrImage.onerror = function() {
+        this.onerror = null;
+        this.src = 'https://via.placeholder.com/250x250?text=Gagal+Memuat+Gambar+QR';
+        toast('Gagal memuat gambar QRIS.', 'error');
+    };
+    // ------------------------------
 
     // Simpan ke database transaksi
     const { error: dbError } = await supabaseClient.from('transactions').insert([{
@@ -3000,12 +3029,11 @@ async function initiateQrisPayment(amount, type, existingOrderId = null) {
         plan_type: type,
         amount: amount,
         status: 'pending',
-        qr_url: qrImage.src
+        qr_url: qrSource // Simpan URL gambar yang udah fix
     }]);
 
     if (dbError) {
         console.error("Gagal simpan ke DB:", dbError);
-        toast('Peringatan: Transaksi gagal disimpan ke riwayat. ' + dbError.message, 'error');
     }
     
     startQrisCountdown(data.expires_at || null);
@@ -3019,7 +3047,7 @@ async function initiateQrisPayment(amount, type, existingOrderId = null) {
     document.getElementById('qris-status-text').textContent = 'Gagal memuat QRIS.';
     toast(err.message, 'error');
   }
-}
+  }
 
 function startQrisCountdown(expiresAtStr) {
   if (qrisCountdownInterval) clearInterval(qrisCountdownInterval);
