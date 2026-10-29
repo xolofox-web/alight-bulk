@@ -3241,10 +3241,15 @@ async function loadTransactionHistory() {
                 statusBadge = '<span class="badge-status active">Berhasil</span>';
             } else if (trx.status === 'pending') {
                 statusBadge = '<span class="badge-status" style="background:rgba(234, 179, 8, 0.1); color:#eab308;">Pending</span>';
+                
+                // --- FIX TOMBOL BAYAR & BATAL JADI MINIMALIS ---
                 actionBtns = `
-                    <button class="btn btn-primary btn-sm" onclick="resumePaymentFromHistory('${trx.order_id}', ${trx.amount}, '${planType}')">Bayar</button>
-                    <button class="btn btn-danger btn-sm" onclick="cancelPaymentFromHistory('${trx.order_id}')">Batalkan</button>
+                    <div style="display: flex; gap: 6px; justify-content: flex-end; align-items: center;">
+                        <button class="btn btn-sm" style="background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); padding: 4px 12px; font-size: 11px; font-weight: 600; border-radius: 20px;" onclick="resumePaymentFromHistory('${trx.order_id}', ${trx.amount}, '${planType}')">Bayar</button>
+                        <button class="btn btn-sm" style="background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); padding: 4px 12px; font-size: 11px; font-weight: 600; border-radius: 20px;" onclick="cancelPaymentFromHistory('${trx.order_id}')">Batal</button>
+                    </div>
                 `;
+                // -----------------------------------------------
             } else {
                 statusBadge = '<span class="badge-status banned">Gagal</span>';
             }
@@ -3252,7 +3257,7 @@ async function loadTransactionHistory() {
             return `
             <tr>
                 <td>${date}</td>
-                <td><code>${trx.order_id || '-'}</code></td>
+                <td><code style="font-size: 11px;">${trx.order_id || '-'}</code></td>
                 <td>${productName}</td>
                 <td><span class="badge-tier ${planType === 'vip' ? 'vip' : 'free'}">${displayPlan}</span></td>
                 <td>${formatRupiah(trx.amount || 0)}</td>
@@ -3267,19 +3272,9 @@ async function loadTransactionHistory() {
     } catch (e) {
         console.error("Error loading transactions:", e);
         let errorMsg = e.message || 'Pastikan tabel "transactions" sudah dibuat.';
-        if(errorMsg.includes('relation') && errorMsg.includes('does not exist')) {
-            errorMsg = 'Tabel "transactions" belum dibuat di database Supabase Anda.';
-        } else if (errorMsg.includes('permission denied')) {
-            errorMsg = 'Akses ditolak. Pastikan RLS tabel "transactions" sudah dimatikan.';
-        }
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--danger);">Gagal memuat: ${errorMsg}<br><small style="color:var(--text-muted); margin-top:8px; display:block;">Buka Console (F12) untuk detail error.</small></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--danger);">Gagal memuat: ${errorMsg}</td></tr>`;
     }
-}
-
-function resumePaymentFromHistory(orderId, amount, type) {
-    initiateQrisPayment(amount, type, orderId);
-}
-
+  }
 async function cancelPaymentFromHistory(orderId) {
     if (!confirm('Apakah Anda yakin ingin membatalkan transaksi ini?')) return;
     
