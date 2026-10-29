@@ -2982,15 +2982,9 @@ async function initiateQrisPayment(amount, type, existingOrderId = null) {
         });
         data = await res.json();
         if (!res.ok || !data.success) throw new Error(data.message || 'API Gagal');
-    } catch (apiError) {
-        console.warn('API Backend gagal / belum disetup. Beralih ke Mode Simulasi QRIS.', apiError);
-        data = {
-            success: true,
-            qr_url: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=SIMULASI_${orderId}`,
-            expires_at: new Date(Date.now() + 15 * 60000).toISOString()
-        };
-        toast('Mode Simulasi: QRIS palsu digunakan (Backend belum siap)', 'info');
-    }
+        } catch (apiError) {
+            throw new Error('Gagal membuat QRIS: ' + apiError.message); 
+  }
 
     document.getElementById('qris-loading').style.display = 'none';
     document.getElementById('qris-content').style.display = 'block';
