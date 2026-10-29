@@ -3,19 +3,20 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
     const { amount, order_id, username, type } = req.body;
-    const apiKey = process.env.CASHI_API_KEY;
+    
+    // 🔥 KITA PAKAI NAMA VARIABEL BARU 🔥
+    const apiKey = process.env.CASHI_KEY_BARU; 
     const baseUrl = process.env.CASHI_BASE_URL;
 
     if (!apiKey || !baseUrl) {
-        return res.status(500).json({ success: false, message: 'CASHI_API_KEY atau CASHI_BASE_URL belum diset di Vercel' });
+        return res.status(500).json({ success: false, message: 'CASHI_KEY_BARU atau CASHI_BASE_URL belum diset di Vercel' });
     }
 
     try {
-        // Tembak API Cashi buat minta QR
         const response = await fetch(`${baseUrl}/v1/transactions`, {
             method: 'POST',
             headers: {
-                'x-api-key': apiKey, // Sesuai format yang lu kasih
+                'x-api-key': apiKey, 
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
