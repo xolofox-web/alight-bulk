@@ -15,10 +15,13 @@ export default async function handler(req, res) {
 
         const apiKey = process.env.CASHI_API_KEY;
         if (!apiKey) {
-            return res.status(500).json({ success: false, message: 'CASHI_API_KEY belum diset' });
+            console.error("ERROR: CASHI_API_KEY tidak ada di Vercel ENV!");
+            return res.status(500).json({ success: false, message: 'CASHI_API_KEY belum diset di Vercel' });
         }
 
         // Tembak API Cashi
+        console.log(`[CASHI] Request buat QRIS untuk order ${order_id}, nominal ${amount}`);
+        
         const cashiResponse = await fetch('https://api.cashi.id/v1/transactions', {
             method: 'POST',
             headers: {
@@ -26,33 +29,42 @@ export default async function handler(req, res) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                amount: amount,
+                amount: parseInt(amount),
                 reference_id: order_id,        // Sesuaikan sama dokumentasi Cashi
                 merchantOrderId: order_id,     // Jaga-jaga kalau Cashi minta ini
                 customer_name: username,
                 description: `Pembelian ${type === 'vip' ? 'VIP 30 Hari' : 'Booster Kuota'}`,
-                
-                // INI YANG PALING PENTING: URL webhook lu!
                 callbackUrl: "https://alight-bulk.vercel.app/api/payment-webhook",
                 webhook_url: "https://alight-bulk.vercel.app/api/payment-webhook"
             })
         });
 
         const data = await cashiResponse.json();
+        console.log("[CASHI] Response:", data); // Lihat di Vercel Logs kalau masih gagal
 
         if (!cashiResponse.ok) {
-            return res.status(cashiResponse.status).json({ success: false, message: data.message || 'Gagal membuat order ke Cashi' });
+            return res.status(cashiResponse.status).json({ 
+                success: false, 
+                message: data.message || data.error || 'Gagal membuat order ke Cashi' 
+            });
         }
 
-        // Kembalikan ke Frontend
+        // Ambil URL QR dari berbagai kemungkinan struktur response API
+        const qrUrl = data.payment_url || data.qr_code_url || data.qr_string || data.data?.qr_string || data.data?.payment_url;
+
+        if (!qrUrl) {
+            console.error("ERROR: API Cashi tidak mengembalikan QR URL!", data);
+            return res.status(500).json({ success: false, message: 'Cashi tidak mengirimkan data QR.' });
+        }
+
         return res.status(200).json({
             success: true,
-            qr_url: data.payment_url || data.qr_code_url || data.qr_string || data.data?.qr_string, 
+            qr_url: qrUrl, 
             expires_at: data.expires_at || new Date(Date.now() + 15 * 60000).toISOString()
         });
 
     } catch (error) {
         console.error('Create Order Error:', error);
-        return res.status(500).json({ success: false, message: error.message });
+        return res.status(500).json({ success: false, message: 'Server Error: ' + error.message });
     }
 }
