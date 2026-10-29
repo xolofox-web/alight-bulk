@@ -27,10 +27,6 @@ export default async function handler(req, res) {
             if (item.key === 'cashi_base_url') baseUrl = item.value;
         });
 
-        if (!apiKey || !baseUrl) {
-            return res.status(500).json({ success: false, message: 'API Key atau Base URL belum diisi di Supabase' });
-        }
-
         const targetUrl = `${baseUrl}/create-order`;
         
         const response = await fetch(targetUrl, {
@@ -51,21 +47,17 @@ export default async function handler(req, res) {
             return res.status(response.status).json({ success: false, message: data.message || data.error || 'Ditolak Cashi' });
         }
 
-        // 🔥 KITA CEK SEMUA KEMUNGKINAN NAMA VARIABEL QR 🔥
-        const qrUrl = data.payment_url || data.qr_code_url || data.qr_string || data.qrString || data.qr_code || data.qrCode || data.data?.qr_string || data.data?.payment_url;
+        // INI DIA KUNCINYA: Pakai data.qrUrl 
+        const qrData = data.qrUrl; 
         
-        // 🔥 KALAU MASIH GAK KETEMU, KITA BONGKAR ISINYA 🔥
-        if(!qrUrl) {
-             // Ini bakal nampilin isi data asli dari Cashi ke layar lu
-             return res.status(500).json({ 
-                 success: false, 
-                 message: 'Data Cashi: ' + JSON.stringify(data) 
-             });
+        if(!qrData) {
+             return res.status(500).json({ success: false, message: 'QR Code tidak ditemukan di respon Cashi.' });
         }
 
+        // Kirim ke Frontend
         return res.status(200).json({
             success: true,
-            qr_url: qrUrl,
+            qr_url: qrData,
             expires_at: data.expires_at || new Date(Date.now() + 15 * 60000).toISOString()
         });
 
