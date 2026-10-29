@@ -4,23 +4,21 @@ export default async function handler(req, res) {
 
     const { amount, order_id, username, type } = req.body;
     const apiKey = process.env.CASHI_API_KEY;
-    
-    // 🔥 INI BAGIAN PENTINGNYA 🔥
-    // Dia bakal nyari variabel namanya CASHI_BASE_URL di Vercel
     const baseUrl = process.env.CASHI_BASE_URL;
 
     if (!apiKey || !baseUrl) {
-        return res.status(500).json({ success: false, message: 'API Key atau Base URL belum diset di Vercel' });
+        return res.status(500).json({ success: false, message: 'CASHI_API_KEY atau CASHI_BASE_URL belum diset di Vercel' });
     }
 
-    // Gabungin URL-nya
+    // Gabungin URL-nya (Pastiin CASHI_BASE_URL di Vercel itu link API, bukan link web)
     const TARGET_URL = `${baseUrl}/v1/transactions`; 
 
     try {
         const response = await fetch(TARGET_URL, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${apiKey}`,
+                // 🔥 INI YANG GUA UBAH: Pakai x-api-key sesuai info dari lu 🔥
+                'x-api-key': apiKey, 
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
@@ -28,7 +26,7 @@ export default async function handler(req, res) {
                 reference_id: order_id,
                 merchantOrderId: order_id,
                 customer_name: username,
-                customerEmail: "user@zyxell.com",
+                customerEmail: "user@zyxell.com", 
                 description: `Pembelian ${type === 'vip' ? 'VIP 30 Hari' : 'Booster Kuota'}`
             })
         });
