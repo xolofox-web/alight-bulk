@@ -10,14 +10,17 @@ export default async function handler(req, res) {
     const response = await fetch(`https://cashi.id/api/check-status?order_id=${order_id}`, {
       method: 'GET',
       headers: {
-        'X-API-Key': CASHI_API_KEY 
+        'X-API-Key': CASHI_API_KEY,
+        'Authorization': `Bearer ${CASHI_API_KEY}`
       }
     });
 
     const data = await response.json();
     
-    // Return status asli dari Cashier (SETTLED, PENDING, EXPIRED)
-    return res.status(200).json(data);
+    // FIX: Buka bungkus 'data' jika Cashi mengirimkannya di dalam objek
+    const statusData = data.data || data;
+    
+    return res.status(200).json(statusData);
 
   } catch (error) {
     return res.status(500).json({ message: error.message });
