@@ -1,6 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
 
-// Koneksi ke Supabase
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -13,7 +12,6 @@ export default async function handler(req, res) {
     const { amount, order_id, username, type } = req.body;
 
     try {
-        // 1. Ambil API Key dan Base URL dari Supabase
         const { data: settings, error: dbError } = await supabase
             .from('settings')
             .select('key, value')
@@ -30,41 +28,39 @@ export default async function handler(req, res) {
         });
 
         if (!apiKey || !baseUrl) {
-            return res.status(500).json({ success: false, message: 'API Key atau Base URL belum diisi di tabel settings Supabase' });
+            return res.status(500).json({ success: false, message: 'API Key atau Base URL belum diisi di Supabase' });
         }
 
-        // 2. Tembak API Cashi SESUAI CONTOH CURL LU
-        // Base URL: https://cashi.id/api
-        // Endpoint: /create-order
         const targetUrl = `${baseUrl}/create-order`;
         
-        console.log("Mencoba request ke:", targetUrl);
-
         const response = await fetch(targetUrl, {
             method: 'POST',
             headers: {
-                'x-api-key': apiKey, // Sesuai contoh curl
+                'x-api-key': apiKey, 
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
                 amount: parseInt(amount),
                 order_id: order_id
-                // Kita buang customerEmail dll biar sama persis kayak curl lu
             })
         });
 
         const data = await response.json();
 
-        // Kalau Cashi nolak
         if (!response.ok) {
             return res.status(response.status).json({ success: false, message: data.message || data.error || 'Ditolak Cashi' });
         }
 
-        // 3. Ambil URL QR (Sesuaikan dengan response Cashi, biasanya di payment_url atau qr_string)
-        const qrUrl = data.payment_url || data.qr_code_url || data.qr_string || data.data?.qr_string || data.data?.payment_url;
+        // 🔥 KITA CEK SEMUA KEMUNGKINAN NAMA VARIABEL QR 🔥
+        const qrUrl = data.payment_url || data.qr_code_url || data.qr_string || data.qrString || data.qr_code || data.qrCode || data.data?.qr_string || data.data?.payment_url;
         
+        // 🔥 KALAU MASIH GAK KETEMU, KITA BONGKAR ISINYA 🔥
         if(!qrUrl) {
-             return res.status(500).json({ success: false, message: 'Cashi sukses tapi tidak mengirimkan URL QR.' });
+             // Ini bakal nampilin isi data asli dari Cashi ke layar lu
+             return res.status(500).json({ 
+                 success: false, 
+                 message: 'Data Cashi: ' + JSON.stringify(data) 
+             });
         }
 
         return res.status(200).json({
