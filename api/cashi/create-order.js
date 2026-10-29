@@ -1,49 +1,55 @@
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ message: 'Method Not Allowed' });
-  const { amount, order_id, username, type } = req.body;
-  const CASHI_API_KEY = process.env.CASHI_API_KEY; 
-  if (!CASHI_API_KEY) return res.status(500).json({ success: false, message: 'CASHI_API_KEY belum di-set di Vercel' });
+    // Setup CORS agar bisa diakses dari frontend
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  try {
-    const response = await fetch('https://cashi.id/api/create-order', {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json', 
-        'X-API-Key': CASHI_API_KEY,
-        'Authorization': `Bearer ${CASHI_API_KEY}` // Pake ini jaga-jaga
-      },
-      body: JSON.stringify({
-        amount: amount,
-        order_id: order_id,
-        description: `Topup ${type} - ${username}`,
-        callback_url: `https://alight-bulk.vercel.app/api/webhook` // Pastikan nama file webhook lu bener
-      })
-    });
-    
-    const data = await response.json();
-    
-    // KALO CASHI NGASIH ERROR, TAMPILIN ERROR ASLINYA DI LAYAR LU
-    if (!response.ok) {
-        return res.status(200).json({ 
-            success: false, 
-            message: `Cashi Error: ${data.message || JSON.stringify(data)}`, 
-            raw: data 
+    if (req.method === 'OPTIONS') return res.status(200).end();
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+    try {
+        const { amount, order_id, username, type } = req.body;
+
+        if (!amount || !order_id) {
+            return res.status(400).json({ success: false, message: 'amount dan order_id wajib diisi' });
+        }
+
+        const apiKey = process.env.CASHI_API_KEY;
+        if (!apiKey) {
+            return res.status(500).json({ success: false, message: 'CASHI_API_KEY belum diset di Environment Variables Vercel' });
+        }
+
+        // Request ke API Cashi untuk membuat transaksi
+        const cashiResponse = await fetch('https://api.cashi.id/v1/transactions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                amount: amount,
+                reference_id: order_id,
+                customer_name: username,
+                description: `Pembelian ${type === 'vip' ? 'VIP 30 Hari' : 'Booster Kuota'}`
+            })
         });
-    }
 
-    const responseData = data.data || data; 
-    const qrUrl = responseData.qr_url || responseData.qr_string || responseData.payment_url || responseData.qr_code || responseData.qrString || responseData.qr;
+        const data = await cashiResponse.json();
 
-    if (!qrUrl) {
-        return res.status(200).json({ 
-            success: false, 
-            message: `QR Kosong. Response: ${JSON.stringify(data)}`, 
-            raw: data 
+        if (!cashiResponse.ok) {
+            return res.status(cashiResponse.status).json({ success: false, message: data.message || 'Gagal membuat order ke Cashi' });
+        }
+
+        // Kirim response sukses ke frontend (index.html)
+        // Menyesuaikan dengan struktur response API Cashi Anda
+        return res.status(200).json({
+            success: true,
+            qr_url: data.payment_url || data.qr_code_url || data.qr_string, 
+            expires_at: data.expires_at || new Date(Date.now() + 15 * 60000).toISOString()
         });
-    }
 
-    return res.status(200).json({ success: true, qr_url: qrUrl, raw: data });
-  } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
-  }
+    } catch (error) {
+        console.error('Create Order Error:', error);
+        return res.status(500).json({ success: false, message: error.message });
+    }
 }
