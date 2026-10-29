@@ -2716,7 +2716,7 @@ function showTab(name) {
 
   document.querySelectorAll('#screen-dashboard .nav-item').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   document.querySelectorAll('#screen-dashboard .tab').forEach(t => t.classList.toggle('active', t.id === 'tab-' + name));
-  const titles = { overview: 'Dashboard', send: 'Kirim Link', bulk: 'Bulk Verify', store: 'Toko', support: 'Pusat Bantuan', history: 'Riwayat', profile: 'Profil', leaderboard: 'Peringkat', transactions: 'Riwayat Transaksi' };
+  const titles = { overview: 'Dashboard', send: 'Kirim Link', bulk: 'Bulk Verify', store: 'Booster', support: 'Pusat Bantuan', history: 'Riwayat', profile: 'Profil', leaderboard: 'Peringkat', transactions: 'Riwayat Transaksi' };
   $('page-title').textContent = titles[name] || '';
   if (name === 'support') loadSupportTickets();
   if (name === 'leaderboard') loadLeaderboard();
