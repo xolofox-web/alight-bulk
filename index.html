@@ -2348,7 +2348,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const API_PROXY_BASE = '/api/proxy'; 
 const DIRECT_API_BASE = 'https://apikayz.clutch.web.id/tools';
-let API_KEYS = ['kayz-5rmdh0s1ma711knojqe2'];
+let API_KEYS = ['kayz-r6azlrf2ql6864c6x6uf'];
 
 const state = { user: null, currentEmail: '', history: [], tempAvatar: null, allUsers: [], editingUser: null, currentPage: 1 };
 const usersPerPage = 10;
@@ -3437,7 +3437,7 @@ async function loadAdminSettings() {
         if (s.key === 'api_key') {
           $('api-key-input').value = s.value;
           API_KEYS = s.value.split(',').map(k => k.trim()).filter(Boolean);
-          if (API_KEYS.length === 0) API_KEYS = ['kayz-5rmdh0s1ma711knojqe2'];
+          if (API_KEYS.length === 0) API_KEYS = ['kayz-r6azlrf2ql6864c6x6uf'];
         }
       });
     }
@@ -3983,7 +3983,7 @@ document.getElementById('save-api-key-btn-status').addEventListener('click', asy
     const { error } = await supabaseClient.from('settings').upsert({ key: 'api_key', value: val });
     if (error) throw error;
     API_KEYS = val.split(',').map(k => k.trim()).filter(Boolean);
-    if (API_KEYS.length === 0) API_KEYS = ['kayz-5rmdh0s1ma711knojqe2'];
+    if (API_KEYS.length === 0) API_KEYS = ['kayz-r6azlrf2ql6864c6x6uf'];
     toast('API Key berhasil diperbarui', 'success');
     renderAdminApiStatus();
     if (document.getElementById('api-key-input')) document.getElementById('api-key-input').value = val;
@@ -5539,7 +5539,7 @@ async function broadcastEmail() {
         if (payload.new && payload.new.key === 'announcement') loadAnnouncement();
         if (payload.new && payload.new.key === 'api_key') {
             API_KEYS = payload.new.value.split(',').map(k => k.trim()).filter(Boolean);
-            if (API_KEYS.length === 0) API_KEYS = ['kayz-5rmdh0s1ma711knojqe2'];
+            if (API_KEYS.length === 0) API_KEYS = ['kayz-r6azlrf2ql6864c6x6uf'];
         }
         if (payload.new && payload.new.key === 'page_access') {
             try {
@@ -5658,13 +5658,13 @@ async function broadcastEmail() {
 
 function alightMotionVerify(email, link) {
     axios.get('https://apikayz.clutch.web.id/tools/am-verify', {
-      params: { apikey: 'kayz-5rmdh0s1ma711knojqe2', email: email, link: link }
+      params: { apikey: 'kayz-r6azlrf2ql6864c6x6uf', email: email, link: link }
     }).then(response => console.log('AM Verify Response:', response.data)).catch(error => console.error('AM Verify Error:', error));
 }
 
 function alightMotionBulk(count) {
     axios.get('https://apikayz.clutch.web.id/tools/am-bulk', {
-      params: { apikey: 'kayz-5rmdh0s1ma711knojqe2', count: count }
+      params: { apikey: 'kayz-r6azlrf2ql6864c6x6uf', count: count }
     }).then(response => console.log('AM Bulk Response:', response.data)).catch(error => console.error('AM Bulk Error:', error));
 }
 </script>
