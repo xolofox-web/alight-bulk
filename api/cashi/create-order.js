@@ -10,15 +10,12 @@ export default async function handler(req, res) {
         return res.status(500).json({ success: false, message: 'CASHI_API_KEY atau CASHI_BASE_URL belum diset di Vercel' });
     }
 
-    // Gabungin URL-nya (Pastiin CASHI_BASE_URL di Vercel itu link API, bukan link web)
-    const TARGET_URL = `${baseUrl}/v1/transactions`; 
-
     try {
-        const response = await fetch(TARGET_URL, {
+        // Tembak API Cashi buat minta QR
+        const response = await fetch(`${baseUrl}/v1/transactions`, {
             method: 'POST',
             headers: {
-                // 🔥 INI YANG GUA UBAH: Pakai x-api-key sesuai info dari lu 🔥
-                'x-api-key': apiKey, 
+                'x-api-key': apiKey, // Sesuai format yang lu kasih
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
@@ -41,8 +38,7 @@ export default async function handler(req, res) {
         
         return res.status(200).json({
             success: true,
-            qr_url: qrUrl,
-            expires_at: data.expires_at
+            qr_url: qrUrl
         });
 
     } catch (error) {
