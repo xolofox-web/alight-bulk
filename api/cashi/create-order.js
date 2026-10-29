@@ -19,16 +19,15 @@ export default async function handler(req, res) {
     const data = await response.json();
     if (!response.ok) throw new Error(data.message || 'Gagal request ke Cashi.id');
 
-    // Cari QR di SEMUA kemungkinan nama field
     const responseData = data.data || data; 
+    // Cari QR di SEMUA kemungkinan nama field
     const qrUrl = responseData.qr_url || responseData.qr_string || responseData.payment_url || responseData.qr_code || responseData.qrString || responseData.qr;
 
-    // Kalau gak ketemu, kirim response ASLINYA biar frontend bisa nampilin
     if (!qrUrl) {
         return res.status(200).json({ 
             success: false, 
             message: 'Cashi.id tidak mengirim field QR.', 
-            raw: data 
+            raw: data // Kirim raw data ke frontend
         });
     }
 
