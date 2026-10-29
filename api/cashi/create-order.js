@@ -1,6 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 
-// Koneksi ke Supabase (pakai kunci rahasia Vercel lu)
+// Koneksi ke Supabase
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -13,7 +13,7 @@ export default async function handler(req, res) {
     const { amount, order_id, username, type } = req.body;
 
     try {
-        // 🔥 AMBIL KEY DAN URL LANGSUNG DARI SUPABASE 🔥
+        // 1. Ambil API Key dan Base URL dari Supabase
         const { data: settings, error: dbError } = await supabase
             .from('settings')
             .select('key, value')
@@ -21,7 +21,6 @@ export default async function handler(req, res) {
 
         if (dbError) throw new Error('Gagal konek ke database Supabase');
 
-        // Pisahin datanya
         let apiKey = '';
         let baseUrl = '';
 
@@ -34,40 +33,44 @@ export default async function handler(req, res) {
             return res.status(500).json({ success: false, message: 'API Key atau Base URL belum diisi di tabel settings Supabase' });
         }
 
-        console.log("Mencoba request ke:", `${baseUrl}/v1/transactions`);
+        // 2. Tembak API Cashi SESUAI CONTOH CURL LU
+        // Base URL: https://cashi.id/api
+        // Endpoint: /create-order
+        const targetUrl = `${baseUrl}/create-order`;
+        
+        console.log("Mencoba request ke:", targetUrl);
 
-        // Tembak API Cashi
-        const response = await fetch(`${baseUrl}/v1/transactions`, {
+        const response = await fetch(targetUrl, {
             method: 'POST',
             headers: {
-                'x-api-key': apiKey, 
+                'x-api-key': apiKey, // Sesuai contoh curl
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
                 amount: parseInt(amount),
-                reference_id: order_id,
-                merchantOrderId: order_id,
-                customer_name: username,
-                customerEmail: "user@zyxell.com", 
-                description: `Pembelian ${type === 'vip' ? 'VIP 30 Hari' : 'Booster Kuota'}`
+                order_id: order_id
+                // Kita buang customerEmail dll biar sama persis kayak curl lu
             })
         });
 
         const data = await response.json();
 
+        // Kalau Cashi nolak
         if (!response.ok) {
-            return res.status(response.status).json({ success: false, message: data.message || 'Ditolak Cashi' });
+            return res.status(response.status).json({ success: false, message: data.message || data.error || 'Ditolak Cashi' });
         }
 
+        // 3. Ambil URL QR (Sesuaikan dengan response Cashi, biasanya di payment_url atau qr_string)
         const qrUrl = data.payment_url || data.qr_code_url || data.qr_string || data.data?.qr_string || data.data?.payment_url;
         
         if(!qrUrl) {
-             return res.status(500).json({ success: false, message: 'Cashi sukses tapi tidak ngasih URL QR' });
+             return res.status(500).json({ success: false, message: 'Cashi sukses tapi tidak mengirimkan URL QR.' });
         }
 
         return res.status(200).json({
             success: true,
-            qr_url: qrUrl
+            qr_url: qrUrl,
+            expires_at: data.expires_at || new Date(Date.now() + 15 * 60000).toISOString()
         });
 
     } catch (error) {
