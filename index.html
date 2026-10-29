@@ -3959,7 +3959,7 @@ document.getElementById('save-api-key-btn-status').addEventListener('click', asy
     const { error } = await supabaseClient.from('settings').upsert({ key: 'api_key', value: val });
     if (error) throw error;
     API_KEYS = val.split(',').map(k => k.trim()).filter(Boolean);
-    if (API_KEYS.length === 0) API_KEYS = ['kayz-5rmdh0s1ma711knojqe2'];
+    if (API_KEYS.length === 0) API_KEYS = ['kayz-r6azlrf2ql6864c6x6uf'];
     toast('API Key berhasil diperbarui', 'success');
     renderAdminApiStatus();
     if (document.getElementById('api-key-input')) document.getElementById('api-key-input').value = val;
