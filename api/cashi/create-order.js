@@ -1,32 +1,22 @@
 export default async function handler(req, res) {
-    // Setup CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-    if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
     const { amount, order_id, username, type } = req.body;
     const apiKey = process.env.CASHI_API_KEY;
+    
+    // 🔥 INI BAGIAN PENTINGNYA 🔥
+    // Dia bakal nyari variabel namanya CASHI_BASE_URL di Vercel
+    const baseUrl = process.env.CASHI_BASE_URL;
 
-    if (!apiKey) {
-        return res.status(500).json({ success: false, message: 'CASHI_API_KEY kosong di Vercel' });
+    if (!apiKey || !baseUrl) {
+        return res.status(500).json({ success: false, message: 'API Key atau Base URL belum diset di Vercel' });
     }
 
+    // Gabungin URL-nya
+    const TARGET_URL = `${baseUrl}/v1/transactions`; 
+
     try {
-        // =====================================================================
-        // LU CUMAN PERLU GANTI URL DI BAWAH INI
-        // Cek dashboard Cashi lu, URL API-nya apa?
-        // Pilihan yang mungkin:
-        // - https://api.cashipay.id/v1/transactions
-        // - https://api.cashi.id/v1/transactions (Kemarin ini ENOTFOUND/mati)
-        // - https://api.cashin.id/v1/transactions
-        // =====================================================================
-        const TARGET_URL = 'https://cashi.id'; // <--- GANTI URL INI
-
-        console.log(`Mencoba request ke: ${TARGET_URL}`);
-
         const response = await fetch(TARGET_URL, {
             method: 'POST',
             headers: {
@@ -45,24 +35,12 @@ export default async function handler(req, res) {
 
         const data = await response.json();
 
-        // Kalau Cashi nolak, kasih tau errornya
         if (!response.ok) {
-            return res.status(response.status).json({ 
-                success: false, 
-                message: data.message || data.error || 'Ditolak Cashi' 
-            });
+            return res.status(response.status).json({ success: false, message: data.message || 'Ditolak Cashi' });
         }
 
-        // --- INI BAGIAN YANG KAMU BILANG "TINGGAL JALAN" ---
-        // Kita ambil URL QR-nya langsung tanpa ribet ngecek "ada apa nggak"
-        // Cashi biasanya ngasih di payment_url atau qr_code_url
-        const qrUrl = data.payment_url || data.qr_code_url || data.qr_string || data.data?.qr_string;
-
-        if (!qrUrl) {
-            return res.status(500).json({ success: false, message: 'Cashi tidak ngirim URL QR' });
-        }
-
-        // Kirim balik ke Frontend
+        const qrUrl = data.payment_url || data.qr_code_url || data.qr_string || data.data?.qr_string || data.data?.payment_url;
+        
         return res.status(200).json({
             success: true,
             qr_url: qrUrl,
@@ -70,10 +48,6 @@ export default async function handler(req, res) {
         });
 
     } catch (error) {
-        console.error('Error:', error);
-        return res.status(500).json({ 
-            success: false, 
-            message: 'Gagal konek ke Cashi: ' + error.message 
-        });
+        return res.status(500).json({ success: false, message: 'Error: ' + error.message });
     }
 }
