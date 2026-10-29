@@ -23,7 +23,7 @@ export default async function handler(req, res) {
         // - https://api.cashi.id/v1/transactions (Kemarin ini ENOTFOUND/mati)
         // - https://api.cashin.id/v1/transactions
         // =====================================================================
-        const TARGET_URL = 'https://cashi.id/create-product'; // <--- GANTI URL INI
+        const TARGET_URL = 'https://cashi.id'; // <--- GANTI URL INI
 
         console.log(`Mencoba request ke: ${TARGET_URL}`);
 
