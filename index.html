@@ -3303,23 +3303,21 @@ async function loadTransactionHistory() {
   }
 
 function resumePaymentFromHistory(orderId, amount, type, expiresAtStr) {
-    // Cek kedaluwarsa
     let isExpired = false;
     if (expiresAtStr) {
         isExpired = new Date() > new Date(expiresAtStr);
     }
 
     if (isExpired) {
-        toast('Waktu pembayaran sudah habis. Silakan buat transaksi baru.', 'error');
-        supabaseClient.from('transactions').update({ status: 'failed' }).eq('order_id', orderId).then(() => {
-             loadTransactionHistory();
-        });
-        return;
+        // ⚠️ Hanya WARNING — tidak auto-fail. User tetap bisa buka modal & coba bayar.
+        if (!confirm('QRIS sudah melewati batas waktu. Kemungkinan pembayaran tidak akan berhasil. Tetap lanjutkan?')) {
+            return;
+        }
     }
 
     initiateQrisPayment(amount, type, orderId, expiresAtStr);
 }
-
+  
 async function cancelPaymentFromHistory(orderId) {
     if (!confirm('Apakah Anda yakin ingin membatalkan transaksi ini? Transaksi yang dibatalkan tidak dapat dilanjutkan lagi.')) return;
     
