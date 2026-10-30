@@ -3085,15 +3085,9 @@ function startQrisCountdown(expiresAtStr) {
       clearInterval(qrisCountdownInterval);
       document.getElementById('qris-countdown').textContent = '00:00';
       document.getElementById('qris-status-box').className = 'qris-status-wrapper error';
-      document.getElementById('qris-status-text').textContent = 'Pembayaran Kedaluwarsa';
+      document.getElementById('qris-status-text').textContent = 'Waktu Habis — Cek Transaksi atau Batalkan di Riwayat';
       if (qrisPollInterval) clearInterval(qrisPollInterval);
-      
-      // AUTO UPDATE DB JADI FAILED KETIKA WAKTU HABIS
-      if (currentOrderId) {
-          supabaseClient.from('transactions').update({ status: 'failed' }).eq('order_id', currentOrderId).then(() => {
-              if (document.getElementById('tab-store').classList.contains('active')) loadTransactionHistory();
-          });
-      }
+      // ⚠️ TIDAK update status DB — transaksi tetap PENDING
       return;
     }
 
@@ -3103,8 +3097,8 @@ function startQrisCountdown(expiresAtStr) {
     document.getElementById('qris-countdown').textContent = 
       `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   }, 1000);
-}
-
+  }
+  
 function pollPaymentStatus(orderId) {
   if (qrisPollInterval) clearInterval(qrisPollInterval);
   
