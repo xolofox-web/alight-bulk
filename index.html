@@ -2935,14 +2935,30 @@ const formatRupiah = (angka) => {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
 };
 
-async function initiateQrisPayment(amount, type, existingOrderId = null, existingExpiresAt = null) {
-  if (!state.user) return toast('Anda harus login terlebih dahulu', 'error');
-  
-  // Jika resuming dari riwayat
+  // Jika resuming dari riwayat — VALIDASI STATUS DULU
   if (existingOrderId) {
       currentOrderId = existingOrderId;
       currentAmount = amount;
       
+      // ⚠️ PENTING: Fetch data transaksi dulu untuk cek status
+      const { data: trx, error: trxErr } = await supabaseClient
+          .from('transactions').select('*').eq('order_id', existingOrderId).single();
+      
+      // Cek transaksi ada atau tidak
+      if (trxErr || !trx) {
+          return toast('Transaksi tidak ditemukan di database.', 'error');
+      }
+      
+      // Cek status — JANGAN buka modal kalau sudah sukses/gagal
+      if (trx.status === 'success') {
+          return toast('Transaksi ini sudah dibayar. Tidak perlu dibayar lagi.', 'info');
+      }
+      if (trx.status === 'failed') {
+          return toast('Transaksi ini sudah dibatalkan. Silakan buat transaksi baru.', 'error');
+      }
+      // Hanya lanjut kalau status masih 'pending'
+      
+      // Set UI modal
       document.getElementById('qris-product-name').textContent = type === 'vip' ? 'VVIP UPGRADE (30 HARI)' : 'BOOSTER (+1000 KUOTA)';
       document.getElementById('qris-order-id').textContent = existingOrderId;
       document.getElementById('qris-nominal').textContent = formatRupiah(amount);
@@ -2956,19 +2972,17 @@ async function initiateQrisPayment(amount, type, existingOrderId = null, existin
       document.getElementById('qris-loading').style.display = 'none';
       document.getElementById('qris-content').style.display = 'block';
       
-      // Fetch dari database untuk QR URL dan Expires At
-      const { data: trx } = await supabaseClient.from('transactions').select('qr_url, expires_at').eq('order_id', existingOrderId).single();
-      
-      let qrSource = trx?.qr_url;
+      // Siapkan QR image
+      let qrSource = trx.qr_url;
       if (!qrSource) {
           qrSource = 'https://via.placeholder.com/250x250?text=QR+Tidak+Ditemukan';
       } else if (!qrSource.startsWith('http') && !qrSource.startsWith('data:image')) {
-          // Kalau yang kesimpen cuma string raw, convert ke gambar
           qrSource = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrSource)}`;
       }
       document.getElementById('qris-image').src = qrSource;
       
-      startQrisCountdown(trx?.expires_at || existingExpiresAt);
+      // Mulai timer & polling
+      startQrisCountdown(trx.expires_at || existingExpiresAt);
       pollPaymentStatus(existingOrderId);
       return;
   }
