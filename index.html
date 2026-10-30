@@ -3201,13 +3201,18 @@ async function loadTransactionHistory() {
         tbody.innerHTML = data.map(trx => {
             let statusBadge = '';
             let actionBtns = '';
+            
             let planType = trx.plan_type || (trx.amount === 35000 ? 'vip' : 'kuota');
             let productName = trx.product_name || (trx.amount === 35000 ? 'VIP 30 Hari' : 'Booster (+1000 Kuota)');
             const displayPlan = (planType === 'vip') ? 'VIP' : 'BOOSTER';
 
+            // 1. LOGIKA UNTUK STATUS SUKSES
             if (trx.status === 'success') {
                 statusBadge = '<span class="badge-status active">Berhasil</span>';
-                actionBtns = '-';
+                // Tampilkan label Sukses di Action sesuai permintaan
+                actionBtns = '<span class="badge-status active" style="background:rgba(16, 185, 129, 0.1); color:var(--success); border:1px solid rgba(16,185,129,0.2); padding: 4px 10px; border-radius: 12px; font-weight:bold;">Sukses</span>';
+            
+            // 2. LOGIKA UNTUK STATUS PENDING (MENUNGGU)
             } else if (trx.status === 'pending') {
                 let isExpired = false;
                 if (trx.expires_at) isExpired = new Date() > new Date(trx.expires_at);
@@ -3215,17 +3220,21 @@ async function loadTransactionHistory() {
 
                 statusBadge = isExpired
                     ? '<span class="badge-status" style="background:rgba(234, 179, 8, 0.1); color:#eab308;">Pending (Kadaluarsa)</span>'
-                    : '<span class="badge-status" style="background:rgba(234, 179, 8, 0.1); color:#eab308;">Pending</span>';
+                    : '<span class="badge-status" style="background:rgba(234, 179, 8, 0.1); color:#eab308;">Menunggu</span>';
 
+                // Tampilkan tombol Bayar & Batal. (User bisa memilih bayar kembali atau tidak)
                 actionBtns = `
                     <div style="display: flex; gap: 6px; justify-content: flex-end; align-items: center;">
-                        <button class="btn btn-sm" style="background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); padding: 4px 12px; font-size: 11px; font-weight: 600; border-radius: 20px;" onclick="resumePaymentFromHistory('${trx.order_id}', ${trx.amount}, '${planType}', '${trx.expires_at || ''}')">Bayar</button>
-                        <button class="btn btn-sm" style="background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); padding: 4px 12px; font-size: 11px; font-weight: 600; border-radius: 20px;" onclick="cancelPaymentFromHistory('${trx.order_id}')">Batalkan</button>
+                        <button class="btn btn-sm" style="background: var(--accent); color: white; padding: 4px 12px; font-size: 11px; font-weight: 600; border-radius: 20px;" onclick="resumePaymentFromHistory('${trx.order_id}', ${trx.amount}, '${planType}', '${trx.expires_at || ''}')">Bayar</button>
+                        <button class="btn btn-sm" style="background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); padding: 4px 12px; font-size: 11px; font-weight: 600; border-radius: 20px;" onclick="cancelPaymentFromHistory('${trx.order_id}')">Batal</button>
                     </div>
                 `;
+            
+            // 3. LOGIKA UNTUK STATUS GAGAL (DIBATALKAN)
             } else if (trx.status === 'failed') {
                 statusBadge = '<span class="badge-status banned">Gagal</span>';
-                actionBtns = `<span style="font-size:11px; color:var(--text-muted);">Dibatalkan</span>`;
+                // Tampilkan label Gagal di Action sesuai permintaan, transaksi tidak bisa diakses lagi
+                actionBtns = '<span class="badge-status banned" style="background:rgba(239, 68, 68, 0.1); color:var(--danger); border:1px solid rgba(239,68,68,0.2); padding: 4px 10px; border-radius: 12px; font-weight:bold;">Gagal</span>';
             } else {
                 statusBadge = '<span class="badge-status banned">Unknown</span>';
                 actionBtns = '-';
@@ -3246,32 +3255,6 @@ async function loadTransactionHistory() {
         console.error("Error loading transactions:", e);
         let errorMsg = e.message || 'Pastikan tabel "transactions" sudah dibuat.';
         tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--danger);">Gagal memuat: ${errorMsg}</td></tr>`;
-    }
-}
-
-function resumePaymentFromHistory(orderId, amount, type, expiresAtStr) {
-    let isExpired = false;
-    if (expiresAtStr) isExpired = new Date() > new Date(expiresAtStr);
-
-    if (isExpired) {
-        if (!confirm('QRIS sudah melewati batas waktu. Kemungkinan pembayaran tidak akan berhasil. Tetap lanjutkan?')) {
-            return;
-        }
-    }
-    initiateQrisPayment(amount, type, orderId, expiresAtStr);
-}
-  
-async function cancelPaymentFromHistory(orderId) {
-    if (!confirm('Apakah Anda yakin ingin membatalkan transaksi ini? Transaksi yang dibatalkan tidak dapat dilanjutkan lagi.')) return;
-    
-    try {
-        const { error } = await supabaseClient.from('transactions').update({ status: 'failed' }).eq('order_id', orderId);
-        if (error) throw error;
-        
-        toast('Transaksi berhasil dibatalkan.', 'success');
-        loadTransactionHistory();
-    } catch (err) {
-        toast('Gagal membatalkan transaksi: ' + err.message, 'error');
     }
   }
 // ============================================================
