@@ -3130,12 +3130,11 @@ function pollPaymentStatus(orderId) {
         clearInterval(qrisPollInterval);
         clearInterval(qrisCountdownInterval);
         statusBox.className = 'qris-status-wrapper error';
-        statusText.textContent = 'Pembayaran Kedaluwarsa';
+        statusText.textContent = 'QRIS Kedaluwarsa — Cek Transaksi atau Batalkan di Riwayat';
         
-        // Update status di DB menjadi failed
-        await supabaseClient.from('transactions').update({ status: 'failed' }).eq('order_id', orderId);
-        loadTransactionHistory(); // Refresh tabel riwayat
-      }
+        // ⚠️ JANGAN update DB — transaksi tetap PENDING
+        // User yang memutuskan lewat tombol "Batalkan" di Riwayat Transaksi
+  }
 
     } catch (e) { 
       console.log('Polling error', e); 
