@@ -3155,6 +3155,7 @@ async function checkTransactionStatus(btn) {
     const statusBox = document.getElementById('qris-status-box');
     const statusText = document.getElementById('qris-status-text');
 
+    // ✅ KASUS SUKSES: update DB jadi success
     if (data.status === 'SETTLED' || data.status === 'SUCCESS') {
       if (qrisPollInterval) clearInterval(qrisPollInterval);
       if (qrisCountdownInterval) clearInterval(qrisCountdownInterval);
@@ -3168,17 +3169,19 @@ async function checkTransactionStatus(btn) {
       setTimeout(() => {
         closeQrisModal();
         syncUserData();
-        loadTransactionHistory(); // Refresh tabel riwayat
+        loadTransactionHistory();
       }, 3000);
-    } else if (data.status === 'EXPIRED') {
+    } 
+    // ✅ KASUS EXPIRED: TIDAK auto-fail — biarkan user putuskan
+    else if (data.status === 'EXPIRED') {
       if (qrisPollInterval) clearInterval(qrisPollInterval);
       if (qrisCountdownInterval) clearInterval(qrisCountdownInterval);
       statusBox.className = 'qris-status-wrapper error';
-      statusText.textContent = 'Pembayaran Kedaluwarsa';
-      
-      await supabaseClient.from('transactions').update({ status: 'failed' }).eq('order_id', currentOrderId);
-      loadTransactionHistory(); // Refresh tabel riwayat
-    } else {
+      statusText.textContent = 'QRIS Kedaluwarsa — Cek Transaksi atau Batalkan di Riwayat';
+      toast('QRIS kedaluwarsa. Transaksi tetap PENDING. Klik "Batalkan" jika tidak ingin melanjutkan.', 'info');
+    } 
+    // ✅ KASUS PENDING / LAINNYA: cukup info
+    else {
       toast('Status: ' + (data.status || 'PENDING') + '. Belum ada pembayaran masuk.', 'info');
     }
   } catch (e) {
@@ -3187,7 +3190,7 @@ async function checkTransactionStatus(btn) {
     btn.disabled = false;
     btn.textContent = originalText;
   }
-}
+  }
 
 // DIUBAH: Fungsi ini sekarang cuma nutup modal, TIDAK nge-cancel transaksi
 function closeQrisModal() {
