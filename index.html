@@ -3239,47 +3239,37 @@ async function loadTransactionHistory() {
             let productName = trx.product_name;
 
             if (!planType || planType === '') {
-                if (trx.amount === 35000) planType = 'vip';
-                else planType = 'kuota';
+                planType = trx.amount === 35000 ? 'vip' : 'kuota';
             }
-
             if (!productName || productName === '' || productName === 'Produk') {
-                if (trx.amount === 35000) productName = 'VIP 30 Hari';
-                else productName = 'Booster (+1000 Kuota)';
+                productName = trx.amount === 35000 ? 'VIP 30 Hari' : 'Booster (+1000 Kuota)';
             }
 
             const displayPlan = (planType === 'vip') ? 'VIP' : 'BOOSTER';
 
-            // LOGIKA STATUS & TOMBOL (FITUR 1 & 2)
             if (trx.status === 'success') {
                 statusBadge = '<span class="badge-status active">Berhasil</span>';
-                actionBtns = '-'; // Jika sukses, tidak ada aksi
+                actionBtns = '-';
             } else if (trx.status === 'pending') {
-                statusBadge = '<span class="badge-status" style="background:rgba(234, 179, 8, 0.1); color:#eab308;">Pending</span>';
-                
-                // Cek apakah waktu sudah habis
+                // Cek expired HANYA untuk visual — TIDAK update DB
                 let isExpired = false;
                 if (trx.expires_at) {
                     isExpired = new Date() > new Date(trx.expires_at);
                 } else if (trx.created_at) {
-                     const createdTime = new Date(trx.created_at).getTime();
-                     isExpired = (new Date().getTime() - createdTime) > (15 * 60 * 1000);
+                    isExpired = (new Date().getTime() - new Date(trx.created_at).getTime()) > (15 * 60 * 1000);
                 }
 
-                if (isExpired) {
-                    statusBadge = '<span class="badge-status banned">Gagal</span>';
-                    // Auto update ke database jadi failed
-                    supabaseClient.from('transactions').update({ status: 'failed' }).eq('order_id', trx.order_id).then();
-                    actionBtns = `<span style="font-size:11px; color:var(--text-muted);">Kadaluarsa</span>`;
-                } else {
-                    // Tampilkan Tombol Bayar & Batal
-                    actionBtns = `
-                        <div style="display: flex; gap: 6px; justify-content: flex-end; align-items: center;">
-                            <button class="btn btn-sm" style="background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); padding: 4px 12px; font-size: 11px; font-weight: 600; border-radius: 20px;" onclick="resumePaymentFromHistory('${trx.order_id}', ${trx.amount}, '${planType}', '${trx.expires_at || ''}')">Bayar</button>
-                            <button class="btn btn-sm" style="background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); padding: 4px 12px; font-size: 11px; font-weight: 600; border-radius: 20px;" onclick="cancelPaymentFromHistory('${trx.order_id}')">Batalkan</button>
-                        </div>
-                    `;
-                }
+                statusBadge = isExpired
+                    ? '<span class="badge-status" style="background:rgba(234, 179, 8, 0.1); color:#eab308;">Pending (Kadaluarsa)</span>'
+                    : '<span class="badge-status" style="background:rgba(234, 179, 8, 0.1); color:#eab308;">Pending</span>';
+
+                // Tetap tampilkan Bayar & Batalkan
+                actionBtns = `
+                    <div style="display: flex; gap: 6px; justify-content: flex-end; align-items: center;">
+                        <button class="btn btn-sm" style="background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); padding: 4px 12px; font-size: 11px; font-weight: 600; border-radius: 20px;" onclick="resumePaymentFromHistory('${trx.order_id}', ${trx.amount}, '${planType}', '${trx.expires_at || ''}')">Bayar</button>
+                        <button class="btn btn-sm" style="background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); padding: 4px 12px; font-size: 11px; font-weight: 600; border-radius: 20px;" onclick="cancelPaymentFromHistory('${trx.order_id}')">Batalkan</button>
+                    </div>
+                `;
             } else if (trx.status === 'failed') {
                 statusBadge = '<span class="badge-status banned">Gagal</span>';
                 actionBtns = `<span style="font-size:11px; color:var(--text-muted);">Dibatalkan</span>`;
@@ -3290,14 +3280,12 @@ async function loadTransactionHistory() {
             
             return `
             <tr>
-                <td>${productName}</td> <!-- FITUR 3: Item -->
-                <td><code style="font-size: 11px;">${trx.order_id || '-'}</code></td> <!-- FITUR 3: ID Transaksi -->
+                <td>${productName}</td>
+                <td><code style="font-size: 11px;">${trx.order_id || '-'}</code></td>
                 <td><span class="badge-tier ${planType === 'vip' ? 'vip' : 'free'}">${displayPlan}</span></td>
                 <td>${formatRupiah(trx.amount || 0)}</td>
                 <td>${statusBadge}</td>
-                <td style="text-align: right;">
-                    ${actionBtns}
-                </td>
+                <td style="text-align: right;">${actionBtns}</td>
             </tr>
             `;
         }).join('');
@@ -3305,14 +3293,14 @@ async function loadTransactionHistory() {
     } catch (e) {
         console.error("Error loading transactions:", e);
         let errorMsg = e.message || 'Pastikan tabel "transactions" sudah dibuat.';
-        if(errorMsg.includes('relation') && errorMsg.includes('does not exist')) {
-            errorMsg = 'Tabel "transactions" belum dibuat di database Supabase Anda.';
+        if (errorMsg.includes('relation') && errorMsg.includes('does not exist')) {
+            errorMsg = 'Tabel "transactions" belum dibuat di Supabase.';
         } else if (errorMsg.includes('permission denied')) {
-            errorMsg = 'Akses ditolak. Pastikan RLS tabel "transactions" sudah dimatikan.';
+            errorMsg = 'Akses ditolak. Matikan RLS tabel "transactions".';
         }
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--danger);">Gagal memuat: ${errorMsg}<br><small style="color:var(--text-muted); margin-top:8px; display:block;">Buka Console (F12) untuk detail error.</small></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--danger);">Gagal memuat: ${errorMsg}</td></tr>`;
     }
-}
+  }
 
 function resumePaymentFromHistory(orderId, amount, type, expiresAtStr) {
     // Cek kedaluwarsa
