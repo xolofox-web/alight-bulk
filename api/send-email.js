@@ -116,8 +116,8 @@ module.exports = async function handler(req, res) {
     // 6. Handling Error dari Resend
     if (error) {
       console.error('Resend API Error:', error);
-      // Jika error karena limit atau domain belum diverifikasi, beritahu user
-      return res.status(500).json({ error: 'Gagal mengirim email. Pastikan konfigurasi domain sudah benar.' });
+      // MENAMPILKAN ERROR ASLI DARI RESEND
+      return res.status(500).json({ error: error.message || JSON.stringify(error) });
     }
 
     // 7. Response Sukses
