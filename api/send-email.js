@@ -37,13 +37,13 @@ module.exports = async function handler(req, res) {
       // PENTING: 
       // - Jika testing: gunakan 'onboarding@resend.dev' & kirim ke email Anda sendiri.
       // - Jika production: ganti dengan email domain yang sudah diverifikasi di Resend.
-      from: 'Zyxell Support <zyxellvar@gmail.com>', 
+      from: 'Zyxell Support <admin@zyxell.my.id>', 
       
       to: [email],
       
       // 4. Tambahkan Reply-To (Opsional)
       // Jika user klik "Reply", email akan masuk ke alamat ini
-      reply_to: 'support@domainanda.com', 
+      reply_to: 'admin@zyxell.my.id', 
       
       subject: 'Tautan Verifikasi Alight Motion Premium',
       
