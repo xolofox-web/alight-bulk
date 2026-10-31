@@ -37,7 +37,7 @@ module.exports = async function handler(req, res) {
       // PENTING: 
       // - Jika testing: gunakan 'onboarding@resend.dev' & kirim ke email Anda sendiri.
       // - Jika production: ganti dengan email domain yang sudah diverifikasi di Resend.
-      from: 'Zyxell Support <onboarding@resend.dev>', 
+      from: 'Zyxell Support <zyxellvar@gmail.com>', 
       
       to: [email],
       
