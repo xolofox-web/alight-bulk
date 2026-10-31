@@ -2946,8 +2946,8 @@ async function initiateQrisPayment(amount, type, existingOrderId = null, existin
           .from('transactions').select('*').eq('order_id', existingOrderId).single();
       
       if (trxErr || !trx) return toast('Transaksi tidak ditemukan di database.', 'error');
-      if (trx.status === 'success') return toast('Transaksi ini sudah dibayar. Tidak perlu dibayar lagi.', 'info');
-      if (trx.status === 'failed') return toast('Transaksi ini sudah dibatalkan. Silakan buat transaksi baru.', 'error');
+      if (trx.status === 'success') return toast('Transaksi ini sudah dibayar.', 'info');
+      if (trx.status === 'failed') return toast('Transaksi ini sudah dibatalkan.', 'error');
       
       document.getElementById('qris-product-name').textContent = type === 'vip' ? 'VVIP UPGRADE (30 HARI)' : 'BOOSTER (+1000 KUOTA)';
       document.getElementById('qris-order-id').textContent = existingOrderId;
@@ -3019,8 +3019,6 @@ async function initiateQrisPayment(amount, type, existingOrderId = null, existin
     }
     
     if (!qrSource) {
-        document.getElementById('qris-status-box').className = 'qris-status-wrapper error';
-        document.getElementById('qris-status-text').innerHTML = 'QR Code tidak valid.<br><small style="font-size:10px; color:#cbd5e1; word-break: break-all;">Response: ' + JSON.stringify(data.raw || data) + '</small>';
         throw new Error('Backend tidak mengirim data QR.');
     }
 
@@ -3033,7 +3031,6 @@ async function initiateQrisPayment(amount, type, existingOrderId = null, existin
     qrImage.onerror = function() {
         this.onerror = null;
         this.src = 'https://via.placeholder.com/250x250?text=Gagal+Memuat+Gambar+QR';
-        toast('Gagal memuat gambar QRIS.', 'error');
     };
 
     const { error: dbError } = await supabaseClient.from('transactions').insert([{
@@ -3074,8 +3071,9 @@ function startQrisCountdown(expiresAtStr) {
       clearInterval(qrisCountdownInterval);
       document.getElementById('qris-countdown').textContent = '00:00';
       document.getElementById('qris-status-box').className = 'qris-status-wrapper error';
-      document.getElementById('qris-status-text').textContent = 'Waktu Habis — Cek Transaksi atau Batalkan di Riwayat';
+      document.getElementById('qris-status-text').textContent = 'Waktu Habis';
       if (qrisPollInterval) clearInterval(qrisPollInterval);
+      // AUTO-FAIL DIHAPUS DARI SINI
       return;
     }
 
@@ -3104,7 +3102,7 @@ function pollPaymentStatus(orderId) {
         
         await supabaseClient.from('transactions').update({ status: 'success' }).eq('order_id', orderId);
         
-        toast('Pembayaran berhasil! Fitur telah ditambahkan.', 'success');
+        toast('Pembayaran berhasil!', 'success');
         setTimeout(() => {
           closeQrisModal();
           syncUserData();
@@ -3114,7 +3112,8 @@ function pollPaymentStatus(orderId) {
         clearInterval(qrisPollInterval);
         clearInterval(qrisCountdownInterval);
         statusBox.className = 'qris-status-wrapper error';
-        statusText.textContent = 'QRIS Kedaluwarsa — Cek Transaksi atau Batalkan di Riwayat';
+        statusText.textContent = 'QRIS Kedaluwarsa';
+        // AUTO-FAIL DIHAPUS DARI SINI
       }
     } catch (e) { 
       console.log('Polling error', e); 
@@ -3142,7 +3141,7 @@ async function checkTransactionStatus(btn) {
       statusText.innerHTML = 'Pembayaran Berhasil';
       
       await supabaseClient.from('transactions').update({ status: 'success' }).eq('order_id', currentOrderId);
-      toast('Pembayaran berhasil! Fitur telah ditambahkan.', 'success');
+      toast('Pembayaran berhasil!', 'success');
       setTimeout(() => {
         closeQrisModal();
         syncUserData();
@@ -3152,8 +3151,9 @@ async function checkTransactionStatus(btn) {
       if (qrisPollInterval) clearInterval(qrisPollInterval);
       if (qrisCountdownInterval) clearInterval(qrisCountdownInterval);
       statusBox.className = 'qris-status-wrapper error';
-      statusText.textContent = 'QRIS Kedaluwarsa — Cek Transaksi atau Batalkan di Riwayat';
-      toast('QRIS kedaluwarsa. Transaksi tetap PENDING. Klik "Batalkan" jika tidak ingin melanjutkan.', 'info');
+      statusText.textContent = 'QRIS Kedaluwarsa';
+      toast('QRIS kedaluwarsa. Transaksi tetap PENDING.', 'info');
+      // AUTO-FAIL DIHAPUS DARI SINI
     } else {
       toast('Status: ' + (data.status || 'PENDING') + '. Belum ada pembayaran masuk.', 'info');
     }
@@ -3175,7 +3175,7 @@ function closeQrisModal() {
   }
   
   if (currentOrderId) {
-      toast('Jendela ditutup. Transaksi masih berjalan. Cek Riwayat Transaksi untuk melanjutkan.', 'info');
+      toast('Jendela ditutup. Transaksi masih PENDING.', 'info');
   }
 }
 
@@ -3206,13 +3206,9 @@ async function loadTransactionHistory() {
             let productName = trx.product_name || (trx.amount === 35000 ? 'VIP 30 Hari' : 'Booster (+1000 Kuota)');
             const displayPlan = (planType === 'vip') ? 'VIP' : 'BOOSTER';
 
-            // 1. LOGIKA UNTUK STATUS SUKSES
             if (trx.status === 'success') {
                 statusBadge = '<span class="badge-status active">Berhasil</span>';
-                // Tampilkan label Sukses di Action sesuai permintaan
-                actionBtns = '<span class="badge-status active" style="background:rgba(16, 185, 129, 0.1); color:var(--success); border:1px solid rgba(16,185,129,0.2); padding: 4px 10px; border-radius: 12px; font-weight:bold;">Sukses</span>';
-            
-            // 2. LOGIKA UNTUK STATUS PENDING (MENUNGGU)
+                actionBtns = '<span style="font-size:11px; color:var(--success);">Sukses</span>';
             } else if (trx.status === 'pending') {
                 let isExpired = false;
                 if (trx.expires_at) isExpired = new Date() > new Date(trx.expires_at);
@@ -3222,19 +3218,16 @@ async function loadTransactionHistory() {
                     ? '<span class="badge-status" style="background:rgba(234, 179, 8, 0.1); color:#eab308;">Pending (Kadaluarsa)</span>'
                     : '<span class="badge-status" style="background:rgba(234, 179, 8, 0.1); color:#eab308;">Menunggu</span>';
 
-                // Tampilkan tombol Bayar & Batal. (User bisa memilih bayar kembali atau tidak)
                 actionBtns = `
                     <div style="display: flex; gap: 6px; justify-content: flex-end; align-items: center;">
                         <button class="btn btn-sm" style="background: var(--accent); color: white; padding: 4px 12px; font-size: 11px; font-weight: 600; border-radius: 20px;" onclick="resumePaymentFromHistory('${trx.order_id}', ${trx.amount}, '${planType}', '${trx.expires_at || ''}')">Bayar</button>
                         <button class="btn btn-sm" style="background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); padding: 4px 12px; font-size: 11px; font-weight: 600; border-radius: 20px;" onclick="cancelPaymentFromHistory('${trx.order_id}')">Batal</button>
                     </div>
                 `;
-            
-            // 3. LOGIKA UNTUK STATUS GAGAL (DIBATALKAN)
+                // AUTO-FAIL SAAT RENDER DIHAPUS DARI SINI
             } else if (trx.status === 'failed') {
                 statusBadge = '<span class="badge-status banned">Gagal</span>';
-                // Tampilkan label Gagal di Action sesuai permintaan, transaksi tidak bisa diakses lagi
-                actionBtns = '<span class="badge-status banned" style="background:rgba(239, 68, 68, 0.1); color:var(--danger); border:1px solid rgba(239,68,68,0.2); padding: 4px 10px; border-radius: 12px; font-weight:bold;">Gagal</span>';
+                actionBtns = '<span style="font-size:11px; color:var(--danger);">Gagal</span>';
             } else {
                 statusBadge = '<span class="badge-status banned">Unknown</span>';
                 actionBtns = '-';
@@ -3253,10 +3246,36 @@ async function loadTransactionHistory() {
         }).join('');
     } catch (e) {
         console.error("Error loading transactions:", e);
-        let errorMsg = e.message || 'Pastikan tabel "transactions" sudah dibuat.';
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--danger);">Gagal memuat: ${errorMsg}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--danger);">Gagal memuat riwayat.</td></tr>`;
     }
-  }
+}
+
+function resumePaymentFromHistory(orderId, amount, type, expiresAtStr) {
+    let isExpired = false;
+    if (expiresAtStr) isExpired = new Date() > new Date(expiresAtStr);
+
+    if (isExpired) {
+        if (!confirm('QRIS sudah melewati batas waktu. Tetap lanjutkan?')) {
+            return;
+        }
+    }
+    initiateQrisPayment(amount, type, orderId, expiresAtStr);
+}
+  
+async function cancelPaymentFromHistory(orderId) {
+    if (!confirm('Apakah Anda yakin ingin membatalkan transaksi ini? Transaksi yang dibatalkan tidak dapat dilanjutkan lagi.')) return;
+    
+    try {
+        const { error } = await supabaseClient.from('transactions').update({ status: 'failed' }).eq('order_id', orderId);
+        if (error) throw error;
+        
+        toast('Transaksi berhasil dibatalkan.', 'success');
+        loadTransactionHistory();
+    } catch (err) {
+        toast('Gagal membatalkan transaksi: ' + err.message, 'error');
+    }
+    }
+
 // ============================================================
 
 
