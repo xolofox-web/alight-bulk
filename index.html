@@ -1,0 +1,1920 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zyxell Bulk — Alight Motion Premium</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- LIBRARY SUPABASE -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- LIBRARY BCRYPT UNTUK HASH & SALT -->
+<script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
+<!-- LIBRARY CHART.JS UNTUK GRAFIK -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- LIBRARY CLOUDFLARE TURNSTILE -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+<!-- CSS EKSTERNAL -->
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="api-status-banner">Server API sedang gangguan, harap tunggu beberapa saat...</div>
+
+<div id="global-maintenance">
+  <svg width="64" height="64" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+  <h1>Sistem Ditutup</h1>
+  <p id="maintenance-text">Web Zyxell Bulk sedang dalam masa perbaikan atau ditutup sementara oleh Admin. Silakan kembali lagi nanti.</p>
+  <button class="admin-bypass-btn" onclick="showAdminLogin()">Login Admin</button>
+</div>
+
+<div id="edit-user-modal" class="modal">
+  <div class="modal-content">
+    <h3>Edit Pengguna</h3>
+    <label>Username</label>
+    <input type="text" id="edit-user-username" disabled style="opacity: 0.6;">
+    <label>Email Baru</label>
+    <input type="email" id="edit-user-email" placeholder="Masukkan email baru">
+    <label>Tier Akun</label>
+    <select id="edit-user-tier">
+      <option value="Free">Free (Limit 30)</option>
+      <option value="VIP">VIP (Limit 100)</option>
+    </select>
+    <label>Bonus Kuota Tambahan</label>
+    <input type="number" id="edit-user-bonus" placeholder="Contoh: 50" min="0" value="0">
+    <label>Password Baru (Kosongkan jika tidak ingin diubah)</label>
+    <input type="password" id="edit-user-password" placeholder="Minimal 4 karakter">
+    
+    <div style="margin-top:16px; background:var(--bg-base); padding:12px; border-radius:8px; border:1px solid var(--border-color);">
+        <div id="edit-user-timeline"></div>
+    </div>
+
+    <div style="display:flex; gap:12px; margin-top:24px;">
+      <button class="btn btn-ghost" onclick="closeEditModal()" style="flex:1;">Batal</button>
+      <button class="btn btn-primary" id="btn-save-edit-user" onclick="saveEditUser()" style="flex:1;">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<div id="bulk-voucher-modal" class="modal">
+  <div class="modal-content">
+    <h3>Generate Voucher Massal</h3>
+    <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">Buat banyak kode unik secara otomatis dan langsung unduh sebagai CSV.</p>
+    
+    <label>Jumlah Voucher</label>
+    <input type="number" id="bulk-qty" value="10" min="1" max="100">
+    
+    <label>Prefix Kode (Opsional)</label>
+    <input type="text" id="bulk-prefix" value="ZYX-" placeholder="Contoh: ZYX-">
+    
+    <label>Tipe Reward</label>
+    <select id="bulk-type">
+      <option value="kuota">Tambah Kuota</option>
+      <option value="vip">Upgrade VIP</option>
+    </select>
+    
+    <label>Jumlah Kuota (Jika tipe Kuota)</label>
+    <input type="number" id="bulk-amount" value="50" min="1">
+    
+    <div style="display:flex; gap:12px; margin-top:24px;">
+      <button class="btn btn-ghost" onclick="document.getElementById('bulk-voucher-modal').style.display='none'" style="flex:1;">Batal</button>
+      <button class="btn btn-primary" id="btn-generate-bulk" onclick="generateBulkVouchers()" style="flex:1;">Generate & Unduh</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL QRIS BARU -->
+<div id="qris-modal" class="modal">
+  <div class="modal-content">
+    <div class="qris-header">
+      <h3>PEMBAYARAN QRIS</h3>
+      <button class="qris-close" onclick="closeQrisModal()">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+    </div>
+    
+    <div class="qris-body">
+      <div class="qris-method">METODE PEMBAYARAN: QRIS</div>
+      <div class="qris-product-name" id="qris-product-name">VVIP UPGRADE (30 HARI)</div>
+      
+      <div id="qris-loading" class="spinner" style="margin: 40px auto;"></div>
+      
+      <div id="qris-content" style="display: none;">
+        <div class="qris-image-container">
+          <img id="qris-image" src="" alt="QR Code">
+        </div>
+        
+        <div class="qris-details-box">
+          <div class="qris-detail-row">
+            <span>Order ID:</span>
+            <strong id="qris-order-id">INV-...</strong>
+          </div>
+          <div class="qris-detail-row">
+            <span>Nominal:</span>
+            <strong id="qris-nominal">Rp 0</strong>
+          </div>
+          <div class="qris-detail-row">
+            <span>TOTAL BAYAR:</span>
+            <strong id="qris-total">Rp 0</strong>
+          </div>
+          <div class="qris-detail-row timer">
+            <span>Batas Waktu:</span>
+            <strong id="qris-countdown">15:00</strong>
+          </div>
+        </div>
+
+        <div class="qris-status-wrapper" id="qris-status-box">
+          <div class="qris-status-spinner"></div>
+          <span id="qris-status-text">Menunggu Pembayaran...</span>
+        </div>
+
+        <button class="btn-check-qris" onclick="checkTransactionStatus(this)">Cek Transaksi</button>
+
+        <button class="btn-cancel-qris" onclick="closeQrisModal()">Tutup (Bayar Nanti)</button>
+      </div>
+    </div>
+
+    <div class="qris-footer-text">
+      Pindai kode QRIS menggunakan aplikasi e-wallet atau mobile banking yang mendukung QRIS. Pastikan nominal pembayaran sesuai. Status transaksi akan diperbarui secara otomatis setelah pembayaran terverifikasi.
+    </div>
+  </div>
+</div>
+<!-- END MODAL QRIS BARU -->
+
+<div id="otp-modal" class="modal">
+  <div class="modal-content">
+    <h3>Verifikasi 2FA</h3>
+    <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">Masukkan 6 angka yang dikirim ke Bot Telegram Admin.</p>
+    <input type="tel" id="otp-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" placeholder="123456" style="text-align:center; font-size:20px; letter-spacing:5px;">
+    <button class="btn btn-primary btn-block" onclick="verifyOTP()" id="btn-verify-otp">Verifikasi</button>
+  </div>
+</div>
+
+<div id="backend-code-modal" class="modal">
+  <div class="modal-content" style="max-width: 800px;">
+    <h3>api/telegram-webhook.js</h3>
+    <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">
+      Copy code di bawah, lalu buat file <code>api/telegram-webhook.js</code> di project Vercel kamu (sejajar dengan <code>api/proxy</code>), lalu <b>deploy ulang</b>.
+    </p>
+    <pre id="backend-code-display" style="background:var(--bg-base); border:1px solid var(--border-color); padding:16px; border-radius:8px; max-height:400px; overflow:auto; font-size:11px; line-height:1.5; color:var(--text-main); font-family:monospace; white-space:pre; text-align:left;"></pre>
+    <div style="display:flex; gap:12px; margin-top:16px;">
+      <button class="btn btn-ghost" onclick="document.getElementById('backend-code-modal').style.display='none';" style="flex:1;">Tutup</button>
+      <button class="btn btn-primary" onclick="copyBackendCode()" style="flex:1;">Copy Code</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL WEBHOOK PAYMENT BARU -->
+<div id="payment-webhook-modal" class="modal">
+  <div class="modal-content" style="max-width: 800px;">
+    <h3>api/payment-webhook.js</h3>
+    <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">
+      Copy code di bawah, lalu buat file <code>api/payment-webhook.js</code> di project Vercel kamu. Ini berfungsi untuk menerima notifikasi pembayaran lunas dari Payment Gateway.
+    </p>
+    <pre id="payment-webhook-display" style="background:var(--bg-base); border:1px solid var(--border-color); padding:16px; border-radius:8px; max-height:400px; overflow:auto; font-size:11px; line-height:1.5; color:var(--text-main); font-family:monospace; white-space:pre; text-align:left;"></pre>
+    <div style="display:flex; gap:12px; margin-top:16px;">
+      <button class="btn btn-ghost" onclick="document.getElementById('payment-webhook-modal').style.display='none';" style="flex:1;">Tutup</button>
+      <button class="btn btn-primary" onclick="copyPaymentWebhookCode()" style="flex:1;">Copy Code</button>
+    </div>
+  </div>
+</div>
+<!-- END MODAL WEBHOOK PAYMENT -->
+
+<div id="email-backend-modal" class="modal">
+  <div class="modal-content" style="max-width: 800px;">
+    <h3>api/send-email.js (Resend)</h3>
+    <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">
+      Copy code di bawah, lalu buat file <code>api/send-email.js</code> di project Vercel kamu. Pastikan sudah menambahkan <code>RESEND_API_KEY</code> di Environment Variables Vercel.
+    </p>
+    <pre id="email-backend-display" style="background:var(--bg-base); border:1px solid var(--border-color); padding:16px; border-radius:8px; max-height:400px; overflow:auto; font-size:11px; line-height:1.5; color:var(--text-main); font-family:monospace; white-space:pre; text-align:left;"></pre>
+    <div style="display:flex; gap:12px; margin-top:16px;">
+      <button class="btn btn-ghost" onclick="document.getElementById('email-backend-modal').style.display='none';" style="flex:1;">Tutup</button>
+      <button class="btn btn-primary" onclick="copyEmailBackendCode()" style="flex:1;">Copy Code</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ TEXTAREA BACKEND CODE (JANGAN DIHAPUS) ============ -->
+<textarea id="backend-code-src" style="display:none;">
+// api/telegram-webhook.js
+// Vercel Serverless Function — Handler Bot Telegram Zyxell (CommonJS)
+// Added: Inline Keyboard, Broadcast Message, Callback Query Handler, Request Topup, Role Management
+
+const { createClient } = require('@supabase/supabase-js');
+
+const supabase = createClient(
+  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY
+);
+
+module.exports = async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  try {
+    const update = req.body || {};
+
+    if (update.message && typeof update.message === 'string') {
+      const { data: settings } = await supabase.from('settings').select('key, value').in('key', ['telegram_token', 'telegram_chat_id']);
+      const cfg = {};
+      (settings || []).forEach(s => { if (s.value && s.value.trim() !== '') cfg[s.key] = s.value; });
+      
+      const adminChatId = String(cfg.telegram_chat_id || '');
+      const botToken = cfg.telegram_token || process.env.TELEGRAM_BOT_TOKEN;
+
+      if (update.message.includes('TIKET BANTUAN BARU')) {
+          const match = update.message.match(/ID Tiket: `([a-f0-9\-]{36})`/);
+          if (match && botToken && adminChatId) {
+              const ticketId = match[1];
+              const replyMarkup = {
+                  inline_keyboard: [
+                      [{ text: 'Balas Tiket', callback_data: `reply_${ticketId}` }],
+                      [{ text: 'Tutup Tiket', callback_data: `close_${ticketId}` }]
+                  ]
+              };
+              await fetch('https://api.telegram.org/bot' + botToken + '/sendMessage', {
+                  method: 'POST', headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ chat_id: adminChatId, text: update.message, parse_mode: 'Markdown', reply_markup: replyMarkup })
+              });
+              return res.status(200).json({ ok: true, source: 'web', type: 'ticket' });
+          }
+      }
+
+      if (botToken && adminChatId) {
+        await sendMsg(botToken, adminChatId, update.message);
+        return res.status(200).json({ ok: true, source: 'web' });
+      }
+      return res.status(400).json({ ok: false, error: 'Token/ID tidak ditemukan' });
+    }
+
+    if (update.action === 'request_topup') {
+      const { username, amount, type } = update;
+      const { data: settings } = await supabase.from('settings').select('key, value').in('key', ['telegram_token', 'telegram_chat_id']);
+      const cfg = {};
+      (settings || []).forEach(s => { if (s.value && s.value.trim() !== '') cfg[s.key] = s.value; });
+      const botToken = cfg.telegram_token || process.env.TELEGRAM_BOT_TOKEN;
+      const adminChatId = String(cfg.telegram_chat_id || '');
+
+      if (!botToken || !adminChatId) return res.status(400).json({ error: 'Bot config missing' });
+
+      const msg = `*REQUEST TOPUP BARU*\n\nUser: \`${username}\`\nPaket: ${type === 'vip' ? 'VIP 30 Hari' : '+' + amount + ' Kuota'}\n\n_Klik tombol di bawah untuk memproses._`;
+      const replyMarkup = {
+        inline_keyboard: [
+          [{ text: 'Terima Topup', callback_data: `approve_topup_${username}_${amount}_${type}` }],
+          [{ text: 'Tolak Topup', callback_data: `reject_topup_${username}` }]
+        ]
+      };
+
+      await fetch('https://api.telegram.org/bot' + botToken + '/sendMessage', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: adminChatId, text: msg, parse_mode: 'Markdown', reply_markup: replyMarkup })
+      });
+      return res.status(200).json({ ok: true, source: 'web_topup' });
+    }
+
+    if (update.callback_query) {
+      const cb = update.callback_query;
+      const chatId = String(cb.message.chat.id);
+      const data = cb.data;
+      const senderName = cb.from?.username || 'Admin';
+
+      const { data: settings } = await supabase.from('settings').select('key, value').in('key', ['telegram_token', 'telegram_chat_id']);
+      const cfg = {};
+      (settings || []).forEach(s => { if (s.value && s.value.trim() !== '') cfg[s.key] = s.value; });
+      
+      const adminChatId = String(cfg.telegram_chat_id || '');
+      const botToken = cfg.telegram_token || process.env.TELEGRAM_BOT_TOKEN;
+
+      if (chatId !== adminChatId) {
+        await answerCallback(botToken, cb.id, 'Akses ditolak');
+        return res.status(200).json({ ok: true });
+      }
+
+      await answerCallback(botToken, cb.id, 'Memproses...');
+
+      if (data.startsWith('approve_topup_')) {
+        const parts = data.split('_');
+        const targetUser = parts[2];
+        const amount = parseInt(parts[3]);
+        const type = parts[4];
+
+        let updates = {};
+        if (type === 'vip') {
+          updates.tier = 'VIP'; updates.limit_harian = 5000;
+          updates.vip_expired_at = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        } else {
+          const { data: user } = await supabase.from('users').select('bonus_kuota').eq('username', targetUser).single();
+          updates.bonus_kuota = (user?.bonus_kuota || 0) + amount;
+        }
+
+        const { error } = await supabase.from('users').update(updates).eq('username', targetUser);
+        if (error) await sendMsg(botToken, chatId, 'Gagal approve: ' + error.message);
+        else {
+          await sendMsg(botToken, chatId, `Topup untuk \`${targetUser}\` (${type}) telah disetujui.`);
+          await fetch('https://api.telegram.org/bot' + botToken + '/editMessageReplyMarkup', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: chatId, message_id: cb.message.message_id, reply_markup: { inline_keyboard: [] } })
+          });
+        }
+        return res.status(200).json({ ok: true });
+      } 
+      else if (data.startsWith('reject_topup_')) {
+        const targetUser = data.replace('reject_topup_', '');
+        await sendMsg(botToken, chatId, `Topup untuk \`${targetUser}\` telah ditolak.`);
+        await fetch('https://api.telegram.org/bot' + botToken + '/editMessageReplyMarkup', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: chatId, message_id: cb.message.message_id, reply_markup: { inline_keyboard: [] } })
+        });
+        return res.status(200).json({ ok: true });
+      }
+
+      if (data.startsWith('reply_')) {
+          const ticketId = data.replace('reply_', '');
+          await sendMsg(botToken, chatId, `Silakan balas dengan format:\n/reply ${ticketId} <pesan balasan>`);
+          return res.status(200).json({ ok: true });
+      } else if (data.startsWith('close_')) {
+          const ticketId = data.replace('close_', '');
+          const { error } = await supabase.from('support_tickets').update({ status: 'closed' }).eq('id', ticketId);
+          if (error) await sendMsg(botToken, chatId, 'Gagal menutup tiket: ' + error.message);
+          else await sendMsg(botToken, chatId, `Tiket \`${ticketId}\` berhasil ditutup.`);
+          return res.status(200).json({ ok: true });
+      }
+
+      if (data === 'btn_close') await handleCloseWeb(botToken, chatId, ['/close'], senderName);
+      if (data === 'btn_open') await handleOpenWeb(botToken, chatId, senderName);
+      if (data === 'btn_status') await handleWebStatus(botToken, chatId);
+      if (data === 'btn_stats') await handleStats(botToken, chatId);
+      if (data === 'btn_pages') await handleListPages(botToken, chatId);
+      if (data === 'btn_menu') await sendMenu(botToken, chatId);
+
+      return res.status(200).json({ ok: true });
+    }
+
+    const message = update.message;
+    if (!message || !message.text) return res.status(200).json({ ok: true });
+
+    const chatId = String(message.chat.id);
+    const text = message.text.trim();
+    const senderName = message.from?.username || message.from?.first_name || 'Admin';
+
+    const { data: settings } = await supabase
+      .from('settings')
+      .select('key, value')
+      .in('key', ['telegram_token', 'telegram_chat_id']);
+
+    const cfg = {};
+    (settings || []).forEach(s => { 
+      if (s.value && s.value.trim() !== '') cfg[s.key] = s.value; 
+    });
+    
+    const adminChatId = String(cfg.telegram_chat_id || '');
+    const botToken = cfg.telegram_token || process.env.TELEGRAM_BOT_TOKEN;
+
+    if (!botToken) return res.status(200).json({ ok: true });
+
+    if (!adminChatId || chatId !== adminChatId) {
+      await sendMsg(botToken, chatId, '*Akses Ditolak*\nAnda bukan admin Zyxell Bulk.');
+      return res.status(200).json({ ok: true });
+    }
+
+    const parts = text.split(/\s+/);
+    const command = parts[0].toLowerCase().split('@')[0];
+
+    switch (command) {
+      case '/start':
+      case '/menu':
+        await sendMenu(botToken, chatId);
+        break;
+      case '/help':
+      case '/allmenu':
+        await sendMsg(botToken, chatId, helpText());
+        break;
+      case '/api_status':
+        await handleApiStatus(botToken, chatId);
+        break;
+      case '/cekapikey':
+        await handleCekApiKeyDetailed(botToken, chatId);
+        break;
+      case '/pages':
+        await handleListPages(botToken, chatId);
+        break;
+      case '/setpage':
+        await handleSetPage(botToken, chatId, parts, senderName);
+        break;
+      case '/close':
+        await handleCloseWeb(botToken, chatId, parts, senderName);
+        break;
+      case '/open':
+        await handleOpenWeb(botToken, chatId, senderName);
+        break;
+      case '/status':
+        await handleWebStatus(botToken, chatId);
+        break;
+      case '/broadcast':
+        await handleBroadcast(botToken, chatId, text, senderName);
+        break;
+      case '/ctvoucher':
+        await handleCreateVoucher(botToken, chatId, parts, senderName);
+        break;
+      case '/listvoucher':
+        await handleListVouchers(botToken, chatId);
+        break;
+      case '/delvoucher':
+        await handleDeleteVoucher(botToken, chatId, parts, senderName);
+        break;
+      case '/cekvoucher':
+        await handleCekVoucher(botToken, chatId, parts);
+        break;
+      case '/addlimit':
+        await handleLimitChange(botToken, chatId, parts, senderName, 'add');
+        break;
+      case '/rdlimit':
+      case '/rclimit':
+        await handleLimitChange(botToken, chatId, parts, senderName, 'reduce');
+        break;
+      case '/topup':
+        await handleTopup(botToken, chatId, parts, senderName);
+        break;
+      case '/userinfo':
+        await handleUserInfo(botToken, chatId, parts);
+        break;
+      case '/resetlimit':
+        await handleResetLimit(botToken, chatId, parts, senderName);
+        break;
+      case '/ban':
+        await handleBanUser(botToken, chatId, parts, senderName, true);
+        break;
+      case '/unban':
+        await handleBanUser(botToken, chatId, parts, senderName, false);
+        break;
+      case '/setvip':
+        await handleSetTier(botToken, chatId, parts, senderName, 'VIP');
+        break;
+      case '/setfree':
+        await handleSetTier(botToken, chatId, parts, senderName, 'Free');
+        break;
+      case '/role':
+        await handleSetRole(botToken, chatId, parts, senderName);
+        break;
+      case '/reply':
+        await handleReplyTicket(botToken, chatId, text);
+        break;
+      case '/closeticket':
+        await handleCloseTicket(botToken, chatId, parts, senderName);
+        break;
+      case '/stats':
+        await handleStats(botToken, chatId);
+        break;
+      default:
+        await sendMsg(botToken, chatId, 'Command tidak dikenal. Ketik /menu untuk melihat tombol menu interaktif, atau /help untuk teks bantuan.');
+    }
+
+    return res.status(200).json({ ok: true });
+  } catch (err) {
+    console.error('[telegram-webhook] Error:', err);
+    return res.status(200).json({ ok: true });
+  }
+};
+
+async function handleApiStatus(botToken, chatId) {
+    try {
+        const { data } = await supabase.from('settings').select('value').eq('key', 'api_key').single();
+        const keys = data?.value ? data.value.split(',').map(k=>k.trim()) : [];
+        if(!keys.length) return sendMsg(botToken, chatId, 'API Key belum diatur di panel web.');
+        
+        let statusMsg = '*STATUS SERVER API*\n\n';
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
+            try {
+                const res = await fetch(`https://apikayz.clutch.web.id/tools/am-test?apikey=${key}`);
+                if (res.ok) statusMsg += `Key ${i+1} (*${key.substring(0,8)}...*) : ONLINE\n`;
+                else statusMsg += `Key ${i+1} (*${key.substring(0,8)}...*) : OFFLINE (HTTP ${res.status})\n`;
+            } catch(e) {
+                statusMsg += `Key ${i+1} (*${key.substring(0,8)}...*) : ERROR KONEKSI\n`;
+            }
+        }
+        await sendMsg(botToken, chatId, statusMsg);
+    } catch(err) {
+        await sendMsg(botToken, chatId, 'Gagal cek API: ' + err.message);
+    }
+}
+
+async function handleCekApiKeyDetailed(botToken, chatId) {
+    try {
+        const { data } = await supabase.from('settings').select('value').eq('key', 'api_key').single();
+        const keys = data?.value ? data.value.split(',').map(k=>k.trim()).filter(Boolean) : [];
+        if(!keys.length) return sendMsg(botToken, chatId, 'API Key belum diatur di panel web.');
+        
+        await sendMsg(botToken, chatId, 'Sedang mengecek semua API Key, mohon tunggu...');
+        
+        let statusMsg = '*STATUS API KEY KAYZ*\n\n';
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
+            const maskedKey = key.substring(0, 8) + '...' + key.slice(-4);
+            const start = Date.now();
+            try {
+                const res = await fetch(`https://apikayz.clutch.web.id/tools/am-test?apikey=${key}`);
+                const latency = Date.now() - start;
+                
+                if (res.ok) {
+                    statusMsg += `Key ${i+1} (\`${maskedKey}\`)\n   Status: *RUNNING*\n   Latensi: ${latency}ms\n\n`;
+                } else {
+                    statusMsg += `Key ${i+1} (\`${maskedKey}\`)\n   Status: *DOWN* (HTTP ${res.status})\n\n`;
+                }
+            } catch(e) {
+                statusMsg += `Key ${i+1} (\`${maskedKey}\`)\n   Status: *STOPPED* (Server tidak merespon)\n\n`;
+            }
+        }
+        statusMsg += `_Dicek pada: ${new Date().toLocaleString('id-ID')}_`;
+        await sendMsg(botToken, chatId, statusMsg);
+    } catch(err) {
+        await sendMsg(botToken, chatId, 'Gagal cek API: ' + err.message);
+    }
+}
+
+async function handleCloseTicket(botToken, chatId, parts, senderName) {
+  if (parts.length < 2) return sendMsg(botToken, chatId, 'Format: `/closeticket (id_tiket)`');
+  const ticketId = parts[1];
+  
+  const { error } = await supabase.from('support_tickets').update({ status: 'closed' }).eq('id', ticketId);
+  if (error) return sendMsg(botToken, chatId, `Gagal menutup tiket: ${error.message}`);
+  
+  try { await supabase.from('admin_logs').insert([{ admin_username: 'Telegram:' + senderName, action: `Menutup tiket ${ticketId}` }]); } catch(e) {}
+  
+  await sendMsg(botToken, chatId, `Tiket \`${ticketId}\` berhasil ditutup.`);
+}
+
+async function handleReplyTicket(botToken, chatId, text) {
+  const match = text.match(/^\/reply\s+([a-f0-9\-]{36})\s+([\s\S]+)/i);
+  if (!match) {
+    return sendMsg(botToken, chatId, '*Format salah.*\nGunakan: `/reply (id_tiket) (pesan balasan)`');
+  }
+  const ticketId = match[1];
+  const replyMsg = match[2];
+  
+  const { data: ticket, error: getErr } = await supabase
+    .from('support_tickets')
+    .select('username, messages')
+    .eq('id', ticketId)
+    .single();
+
+  if (getErr || !ticket) return sendMsg(botToken, chatId, 'Tiket tidak ditemukan di database.');
+  
+  let messages = ticket.messages || [];
+  if (!Array.isArray(messages)) messages = []; 
+  
+  messages.push({ sender: 'admin', text: replyMsg, time: new Date().toISOString() });
+
+  const { error } = await supabase.from('support_tickets').update({ 
+    status: 'replied', messages: messages 
+  }).eq('id', ticketId);
+  
+  if (error) return sendMsg(botToken, chatId, 'Gagal membalas tiket: ' + error.message);
+  
+  await sendMsg(botToken, chatId, `Balasan berhasil dikirim ke user \`${ticket.username}\`.\nStatus tiket sekarang *Replied* (User bisa membalas lagi).`);
+}
+
+const defaultPageAccess = { overview: true, send: true, bulk: true, store: true, support: true, history: true, profile: true };
+
+async function handleListPages(botToken, chatId) {
+  try {
+    const { data } = await supabase.from('settings').select('value').eq('key', 'page_access').single();
+    let access = { ...defaultPageAccess };
+    if (data && data.value) {
+      try { access = { ...access, ...JSON.parse(data.value) }; } catch(e){}
+    }
+    
+    let txt = '*STATUS HALAMAN WEB*\n\n';
+    for (const [key, isOpen] of Object.entries(access)) {
+       if (key === 'overview') continue;
+       txt += `${isOpen ? 'BUKA' : 'TUTUP'} ${key.toUpperCase()}\n`;
+    }
+    txt += '\n_Ketik `/setpage <nama_halaman> <buka/tutup>` untuk mengubah._\nContoh: `/setpage toko tutup`';
+    
+    await sendMsg(botToken, chatId, txt);
+  } catch (err) {
+    await sendMsg(botToken, chatId, 'Gagal memuat status halaman: ' + err.message);
+  }
+}
+
+async function handleSetPage(botToken, chatId, parts, senderName) {
+  if (parts.length < 3) return sendMsg(botToken, chatId, 'Format: `/setpage <nama_halaman> <buka/tutup>`\nHalaman: send, bulk, store, support, history, profile');
+  
+  const page = parts[1].toLowerCase();
+  const action = parts[2].toLowerCase();
+  
+  if (!defaultPageAccess.hasOwnProperty(page) || page === 'overview') {
+    return sendMsg(botToken, chatId, 'Halaman tidak valid atau tidak bisa ditutup.');
+  }
+  if (!['buka', 'tutup', 'open', 'close'].includes(action)) {
+    return sendMsg(botToken, chatId, 'Aksi harus "buka" atau "tutup".');
+  }
+  
+  const isOpen = action === 'buka' || action === 'open';
+  
+  try {
+    const { data } = await supabase.from('settings').select('value').eq('key', 'page_access').single();
+    let access = { ...defaultPageAccess };
+    if (data && data.value) {
+      try { access = { ...access, ...JSON.parse(data.value) }; } catch(e){}
+    }
+    
+    access[page] = isOpen;
+    const { error } = await supabase.from('settings').upsert({ key: 'page_access', value: JSON.stringify(access) });
+    if (error) throw error;
+    
+    try { await supabase.from('admin_logs').insert([{ admin_username: 'Telegram:' + senderName, action: `Ubah akses halaman ${page} menjadi ${isOpen ? 'Buka' : 'Tutup'}` }]); } catch(e){}
+    
+    await sendMsg(botToken, chatId, `Halaman *${page.toUpperCase()}* berhasil di-${isOpen ? 'BUKA' : 'TUTUP'}.`);
+  } catch (err) {
+    await sendMsg(botToken, chatId, 'Gagal mengubah akses: ' + err.message);
+  }
+}
+
+async function handleBroadcast(botToken, chatId, text, senderName) {
+  const msg = text.replace('/broadcast', '').trim();
+  if (!msg) return sendMsg(botToken, chatId, 'Format: `/broadcast (pesan)`\nContoh: `/broadcast Maintenance malam ini jam 12 ya!`');
+  
+  const { error } = await supabase.from('settings').upsert({ key: 'announcement', value: msg });
+  if (error) return sendMsg(botToken, chatId, `Gagal broadcast: ${error.message}`);
+  
+  try { await supabase.from('admin_logs').insert([{ admin_username: 'Telegram:' + senderName, action: `Broadcast: ${msg}` }]); } catch(e) {}
+
+  await sendMsg(botToken, chatId, `*BROADCAST SUKSES!*\nPesan banner di Web Panel telah diubah menjadi:\n\n"${msg}"`);
+}
+
+async function sendMenu(botToken, chatId) {
+  const text = '*ZYXELL BULK — MENU UTAMA*\n\nSilakan pilih menu di bawah ini:';
+  const replyMarkup = {
+    inline_keyboard: [
+      [{ text: 'Tutup Web', callback_data: 'btn_close' }, { text: 'Buka Web', callback_data: 'btn_open' }],
+      [{ text: 'Cek Status', callback_data: 'btn_status' }, { text: 'Statistik', callback_data: 'btn_stats' }],
+      [{ text: 'Status Halaman', callback_data: 'btn_pages' }],
+      [{ text: 'Panduan Command (/help)', callback_data: 'btn_menu' }]
+    ]
+  };
+
+  try {
+    await fetch('https://api.telegram.org/bot' + botToken + '/sendMessage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'Markdown', reply_markup: replyMarkup })
+    });
+  } catch (e) { console.error(e); }
+}
+
+async function answerCallback(botToken, callbackId, text) {
+  try {
+    await fetch('https://api.telegram.org/bot' + botToken + '/answerCallbackQuery', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ callback_query_id: callbackId, text })
+    });
+  } catch (e) {}
+}
+
+async function handleTopup(botToken, chatId, parts, senderName) {
+  if (parts.length < 3) return sendMsg(botToken, chatId, 'Format: `/topup (username) (jumlah)`');
+  const targetUser = parts[1];
+  const amount = parseInt(parts[2]);
+  if (isNaN(amount) || amount <= 0) return sendMsg(botToken, chatId, 'Jumlah harus angka positif.');
+  const { data: user, error: errFetch } = await supabase.from('users').select('saldo, bonus_kuota').eq('username', targetUser).single();
+  if (errFetch || !user) return sendMsg(botToken, chatId, `User \`${targetUser}\` tidak ditemukan.`);
+  let newSaldo = (user.saldo || 0) + amount;
+  let newBonus = (user.bonus_kuota || 0) + amount;
+  const { error: errUpdate } = await supabase.from('users').update({ saldo: newSaldo, bonus_kuota: newBonus }).eq('username', targetUser);
+  if (errUpdate) return sendMsg(botToken, chatId, `Gagal topup: ${errUpdate.message}`);
+  try { await supabase.from('admin_logs').insert([{ admin_username: 'Telegram:' + senderName, action: `Topup ${amount} ke ${targetUser}` }]); } catch (e) {}
+  await sendMsg(botToken, chatId, `Berhasil menambahkan *${amount} Saldo/Kuota* ke user \`${targetUser}\`.\nTotal Saldo: *${newSaldo}*`);
+}
+
+async function handleCekVoucher(botToken, chatId, parts) {
+  if (parts.length < 2) return sendMsg(botToken, chatId, 'Format: `/cekvoucher (kode)`');
+  const code = parts[1].toUpperCase();
+  const { data: redemptions, error } = await supabase.from('voucher_redemptions').select('username, redeemed_at').eq('voucher_code', code).order('redeemed_at', { ascending: false });
+  if (error) return sendMsg(botToken, chatId, `Error: ${error.message}`);
+  if (!redemptions || !redemptions.length) return sendMsg(botToken, chatId, `Voucher \`${code}\` belum pernah ditukar.`);
+  let txt = `*PENGGUNA VOUCHER: ${code}*\nTotal: ${redemptions.length} orang\n\n`;
+  redemptions.forEach((r, i) => { txt += `${i + 1}. \`${r.username}\` (${new Date(r.redeemed_at).toLocaleString('id-ID')})\n`; });
+  await sendMsg(botToken, chatId, txt);
+}
+
+async function handleLimitChange(botToken, chatId, parts, senderName, action) {
+  if (parts.length < 3) {
+    return sendMsg(botToken, chatId, `*Format salah!*\n\n*Format:* /${action === 'add' ? 'addlimit' : 'rdlimit'} (username) (jumlah)\n*Contoh:* /${action === 'add' ? 'addlimit' : 'rdlimit'} Zyxell 50`);
+  }
+  const targetUser = parts[1];
+  const amount = parseInt(parts[2]);
+  if (isNaN(amount) || amount <= 0) {
+    return sendMsg(botToken, chatId, 'Jumlah harus berupa angka positif.');
+  }
+  const { data: user, error: errFetch } = await supabase.from('users').select('bonus_kuota, tier').eq('username', targetUser).single();
+  if (errFetch || !user) {
+    return sendMsg(botToken, chatId, `User \`${targetUser}\` tidak ditemukan di database.`);
+  }
+  let currentBonus = user.bonus_kuota || 0;
+  let newBonus = action === 'add' ? currentBonus + amount : Math.max(0, currentBonus - amount);
+  const { error: errUpdate } = await supabase.from('users').update({ bonus_kuota: newBonus }).eq('username', targetUser);
+  if (errUpdate) {
+    return sendMsg(botToken, chatId, `Gagal update limit:\n${errUpdate.message}`);
+  }
+  try {
+    await supabase.from('admin_logs').insert([{
+      admin_username: 'Telegram:' + senderName,
+      action: `${action === 'add' ? 'Menambah' : 'Mengurangi'} limit ${targetUser} sebanyak ${amount}`
+    }]);
+  } catch (e) {}
+  const baseLimit = user.tier === 'VIP' ? 5000 : 30;
+  const totalLimit = baseLimit + newBonus;
+  await sendMsg(botToken, chatId,
+    `*BERHASIL ${action === 'add' ? 'MENAMBAH' : 'MENGURANGI'} LIMIT*\n\n` +
+    `Username    : \`${targetUser}\`\n` +
+    `Tier        : ${user.tier || 'Free'}\n` +
+    `Perubahan : ${action === 'add' ? '+' : '-'}${amount}\n` +
+    `Bonus Kuota : ${newBonus}\n` +
+    `Limit Total : *${totalLimit} akun/hari*`
+  );
+}
+
+async function handleUserInfo(botToken, chatId, parts) {
+  if (parts.length < 2) {
+    return sendMsg(botToken, chatId, '*Format salah!*\n\n*Format:* /userinfo (username)\n*Contoh:* /userinfo Zyxell');
+  }
+  const targetUser = parts[1];
+  const { data: user, error } = await supabase.from('users').select('*').eq('username', targetUser).single();
+  if (error || !user) {
+    return sendMsg(botToken, chatId, `User \`${targetUser}\` tidak ditemukan.`);
+  }
+  const baseLimit = user.tier === 'VIP' ? 5000 : 30;
+  const totalLimit = baseLimit + (user.bonus_kuota || 0);
+  const sisaLimit = Math.max(0, totalLimit - (user.kuota_terpakai || 0));
+  await sendMsg(botToken, chatId,
+    `*DETAIL USER: ${user.username}*\n\n` +
+    `Email       : ${user.email}\n` +
+    `Tier        : *${user.tier || 'Free'}*\n` +
+    `Status      : ${user.status === 'banned' ? 'Banned' : 'Active'}\n` +
+    `IP Address  : \`${user.ip_address || 'Unknown'}\`\n\n` +
+    `Limit Harian: ${totalLimit} akun\n` +
+    `Terpakai    : ${user.kuota_terpakai || 0} akun\n` +
+    `Sisa Limit  : ${sisaLimit} akun\n` +
+    `Bonus Kuota : ${user.bonus_kuota || 0}\n\n` +
+    `Tgl Daftar  : ${new Date(user.created_at).toLocaleString('id-ID')}`
+  );
+}
+
+async function handleResetLimit(botToken, chatId, parts, senderName) {
+  if (parts.length < 2) {
+    return sendMsg(botToken, chatId, '*Format salah!*\n\n*Format:* /resetlimit (username)');
+  }
+  const targetUser = parts[1];
+  const { error } = await supabase.from('users').update({ kuota_terpakai: 0, reset_kuota_at: null }).eq('username', targetUser);
+  if (error) return sendMsg(botToken, chatId, `Gagal reset limit: ${error.message}`);
+  try {
+    await supabase.from('admin_logs').insert([{ admin_username: 'Telegram:' + senderName, action: `Reset limit ${targetUser}` }]);
+  } catch (e) {}
+  await sendMsg(botToken, chatId, `Kuota harian untuk user \`${targetUser}\` berhasil di-reset menjadi 0.`);
+}
+
+async function handleBanUser(botToken, chatId, parts, senderName, isBan) {
+  if (parts.length < 2) {
+    return sendMsg(botToken, chatId, `*Format salah!*\n\n*Format:* /${isBan ? 'ban' : 'unban'} (username)`);
+  }
+  const targetUser = parts[1];
+  const newStatus = isBan ? 'banned' : 'active';
+  const { error } = await supabase.from('users').update({ status: newStatus }).eq('username', targetUser);
+  if (error) return sendMsg(botToken, chatId, `Gagal update status: ${error.message}`);
+  try {
+    await supabase.from('admin_logs').insert([{ 
+      admin_username: 'Telegram:' + senderName, 
+      action: `${isBan ? 'Memblokir' : 'Membuka blokir'} user ${targetUser}` 
+    }]);
+  } catch (e) {}
+  await sendMsg(botToken, chatId, `User \`${targetUser}\` berhasil ${isBan ? 'di-**BAN**' : 'di-**UNBAN**'}.`);
+}
+
+async function handleSetTier(botToken, chatId, parts, senderName, tier) {
+  if (parts.length < 2) {
+    return sendMsg(botToken, chatId, `*Format salah!*\n\n*Format:* /${tier === 'VIP' ? 'setvip' : 'setfree'} (username)${tier === 'VIP' ? ' [hari]' : ''}`);
+  }
+  const targetUser = parts[1];
+  const newLimitHarian = tier === 'VIP' ? 5000 : 30;
+  let expiredAt = null;
+  let daysMsg = '';
+  if (tier === 'VIP') {
+      const days = parseInt(parts[2]) || 30;
+      expiredAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+      daysMsg = ` selama ${days} hari (s/d ${new Date(expiredAt).toLocaleDateString('id-ID')})`;
+  }
+  const { error } = await supabase.from('users').update({ tier: tier, limit_harian: newLimitHarian, vip_expired_at: expiredAt }).eq('username', targetUser);
+  if (error) return sendMsg(botToken, chatId, `Gagal update tier: ${error.message}`);
+  try {
+    await supabase.from('admin_logs').insert([{ 
+      admin_username: 'Telegram:' + senderName, 
+      action: `Mengubah tier ${targetUser} menjadi ${tier}${daysMsg}` 
+    }]);
+  } catch (e) {}
+  await sendMsg(botToken, chatId, `User \`${targetUser}\` sekarang berstatus **${tier}**${daysMsg}.`);
+}
+
+async function handleSetRole(botToken, chatId, parts, senderName) {
+  if (parts.length < 3) {
+    return sendMsg(botToken, chatId, '*Format salah!*\n\n*Format:* /role (username) (admin/user)\n*Contoh:* /role Zyxell admin');
+  }
+  const targetUser = parts[1];
+  const newRole = parts[2].toLowerCase();
+  
+  if (!['admin', 'user'].includes(newRole)) {
+    return sendMsg(botToken, chatId, 'Role tidak valid. Gunakan `admin` atau `user`.');
+  }
+  
+  const { error } = await supabase.from('users').update({ role: newRole }).eq('username', targetUser);
+  if (error) return sendMsg(botToken, chatId, `Gagal update role: ${error.message}`);
+  
+  try {
+    await supabase.from('admin_logs').insert([{ 
+      admin_username: 'Telegram:' + senderName, 
+      action: `Mengubah role ${targetUser} menjadi ${newRole}` 
+    }]);
+  } catch (e) {}
+  
+  await sendMsg(botToken, chatId, `User \`${targetUser}\` sekarang memiliki role **${newRole.toUpperCase()}**.`);
+}
+
+async function handleCloseWeb(botToken, chatId, parts, senderName) {
+  const customMessage = parts.slice(1).join(' ').trim();
+  const defaultMessage = 'Web Zyxell Bulk sedang dalam masa perbaikan atau ditutup sementara oleh Admin. Silakan kembali lagi nanti.';
+  const finalMessage = customMessage || defaultMessage;
+  try {
+    const { error: err1 } = await supabase.from('settings').upsert({ key: 'web_status', value: 'closed' });
+    if (err1) throw err1;
+    const { error: err2 } = await supabase.from('settings').upsert({ key: 'maintenance_message', value: finalMessage });
+    if (err2) throw err2;
+    try {
+      await supabase.from('admin_logs').insert([{
+        admin_username: 'Telegram:' + senderName,
+        action: 'Menutup web via Bot. Pesan: ' + finalMessage
+      }]);
+    } catch (e) {}
+    await sendMsg(botToken, chatId,
+      '*WEB BERHASIL DITUTUP*\n\n' +
+      '*Pesan Maintenance:*\n' + finalMessage + '\n\n' +
+      'Oleh: ' + senderName + '\n' +
+      'Waktu: ' + new Date().toLocaleString('id-ID') + '\n\n' +
+      '_Gunakan /open untuk membuka kembali website._'
+    );
+  } catch (err) {
+    await sendMsg(botToken, chatId, 'Gagal menutup web:\n' + err.message);
+  }
+}
+
+async function handleOpenWeb(botToken, chatId, senderName) {
+  try {
+    const { error } = await supabase.from('settings').upsert({ key: 'web_status', value: 'open' });
+    if (error) throw error;
+    try {
+      await supabase.from('admin_logs').insert([{
+        admin_username: 'Telegram:' + senderName,
+        action: 'Membuka akses web via Bot'
+      }]);
+    } catch (e) {}
+    await sendMsg(botToken, chatId,
+      '*WEB BERHASIL DIBUKA*\n\n' +
+      'Semua pengguna sekarang bisa mengakses website kembali.\n\n' +
+      'Oleh: ' + senderName + '\n' +
+      'Waktu: ' + new Date().toLocaleString('id-ID')
+    );
+  } catch (err) {
+    await sendMsg(botToken, chatId, 'Gagal membuka web:\n' + err.message);
+  }
+}
+
+async function handleWebStatus(botToken, chatId) {
+  try {
+    const { data, error } = await supabase
+      .from('settings')
+      .select('key, value')
+      .in('key', ['web_status', 'maintenance_message', 'maintenance_start', 'maintenance_end']);
+    if (error) throw error;
+    const cfg = {};
+    (data || []).forEach(s => { cfg[s.key] = s.value; });
+    const isClosed = cfg.web_status === 'closed';
+    const statusIcon = isClosed ? 'TUTUP' : 'BUKA';
+    const statusText = isClosed ? 'DITUTUP (Maintenance)' : 'TERBUKA (Aktif)';
+    let txt = '*STATUS WEBSITE*\n\n' + statusIcon + ' Status: *' + statusText + '*\n';
+    if (isClosed && cfg.maintenance_message) {
+      txt += '\nPesan:\n' + cfg.maintenance_message + '\n';
+    }
+    if (cfg.maintenance_start || cfg.maintenance_end) {
+      txt += '\nJadwal Maintenance:\n';
+      txt += '- Mulai: ' + (cfg.maintenance_start || '-') + '\n';
+      txt += '- Selesai: ' + (cfg.maintenance_end || '-') + '\n';
+    }
+    await sendMsg(botToken, chatId, txt);
+  } catch (err) {
+    await sendMsg(botToken, chatId, 'Gagal ambil status:\n' + err.message);
+  }
+}
+
+async function handleCreateVoucher(botToken, chatId, parts, senderName) {
+  if (parts.length < 5) {
+    return sendMsg(botToken, chatId,
+      '*Format salah!*\n\n' +
+      '*Format:* /ctvoucher (kode) (tipe) (jumlah) (max_penggunaan)\n\n' +
+      '*Contoh:*\n' +
+      '- /ctvoucher ZYXELL50 kuota 50 100\n' +
+      '- /ctvoucher VIPGRATIS vip 0 50\n\n' +
+      '*Tipe:*\n' +
+      '- kuota — tambah kuota (isi jumlah > 0)\n' +
+      '- vip — upgrade ke VIP (jumlah diabaikan)\n\n' +
+      '*Max penggunaan:* batas berapa kali kode bisa ditukar'
+    );
+  }
+  const code = parts[1].toUpperCase().trim();
+  const type = parts[2].toLowerCase().trim();
+  const amount = parseInt(parts[3]) || 0;
+  const maxUses = parseInt(parts[4]) || 100;
+  if (!/^[A-Z0-9_-]{3,20}$/.test(code)) {
+    return sendMsg(botToken, chatId, 'Kode voucher tidak valid.\nMinimal 3–20 karakter (A-Z, 0-9, _, -).');
+  }
+  if (!['kuota', 'vip'].includes(type)) {
+    return sendMsg(botToken, chatId, 'Tipe tidak valid. Gunakan kuota atau vip.');
+  }
+  if (type === 'kuota' && amount < 1) {
+    return sendMsg(botToken, chatId, 'Jumlah kuota minimal 1.');
+  }
+  if (maxUses < 1) {
+    return sendMsg(botToken, chatId, 'Max penggunaan minimal 1.');
+  }
+  const { data: exist } = await supabase.from('vouchers').select('code').eq('code', code).maybeSingle();
+  if (exist) return sendMsg(botToken, chatId, 'Voucher ' + code + ' sudah ada di database.');
+  const { error } = await supabase.from('vouchers').insert([{
+    code, reward_type: type, reward_amount: type === 'kuota' ? amount : 0,
+    max_uses: maxUses, current_uses: 0
+  }]);
+  if (error) return sendMsg(botToken, chatId, 'Gagal membuat voucher:\n' + error.message);
+  try {
+    await supabase.from('admin_logs').insert([{
+      admin_username: 'Telegram:' + senderName,
+      action: 'Buat voucher via Bot: ' + code + ' (' + type + ', ' + amount + ', max ' + maxUses + ')'
+    }]);
+  } catch (e) { }
+  const rewardText = type === 'vip' ? 'Upgrade ke VIP' : '+' + amount + ' Kuota';
+  await sendMsg(botToken, chatId,
+    '*VOUCHER BERHASIL DIBUAT*\n\n' +
+    'Kode        : ' + code + '\n' +
+    'Reward      : ' + rewardText + '\n' +
+    'Max Pakai   : ' + maxUses + 'x\n' +
+    'Dibuat oleh : ' + senderName + '\n\n' +
+    '_Pengguna dapat menukar kode ini di menu Profil - Tukar Voucher._'
+  );
+}
+
+async function handleListVouchers(botToken, chatId) {
+  const { data: list, error } = await supabase
+    .from('vouchers').select('*').order('created_at', { ascending: false }).limit(25);
+  if (error) return sendMsg(botToken, chatId, 'Gagal ambil data: ' + error.message);
+  if (!list || !list.length) return sendMsg(botToken, chatId, 'Belum ada voucher di database.');
+  let txt = '*DAFTAR VOUCHER (' + list.length + ' terakhir)*\n\n';
+  list.forEach((v, i) => {
+    const reward = v.reward_type === 'vip' ? 'VIP' : '+' + v.reward_amount + ' kuota';
+    const habis = v.current_uses >= v.max_uses;
+    const status = habis ? 'HABIS' : 'Aktif';
+    txt += (i + 1) + '. ' + v.code + ' — ' + reward + '\n   ' + status + ' (' + v.current_uses + '/' + v.max_uses + ')\n';
+  });
+  await sendMsg(botToken, chatId, txt);
+}
+
+async function handleDeleteVoucher(botToken, chatId, parts, senderName) {
+  if (parts.length < 2) return sendMsg(botToken, chatId, 'Format: /delvoucher (kode)');
+  const code = parts[1].toUpperCase();
+  const { error } = await supabase.from('vouchers').delete().eq('code', code);
+  if (error) return sendMsg(botToken, chatId, 'Gagal hapus: ' + error.message);
+  try {
+    await supabase.from('admin_logs').insert([{
+      admin_username: 'Telegram:' + senderName, action: 'Hapus voucher via Bot: ' + code
+    }]);
+  } catch (e) {}
+  await sendMsg(botToken, chatId, 'Voucher ' + code + ' berhasil dihapus.');
+}
+
+async function handleStats(botToken, chatId) {
+  const [u, v, l] = await Promise.all([
+    supabase.from('users').select('*', { count: 'exact', head: true }),
+    supabase.from('vouchers').select('*', { count: 'exact', head: true }),
+    supabase.from('login_logs').select('*', { count: 'exact', head: true })
+  ]);
+  await sendMsg(botToken, chatId,
+    '*STATISTIK ZYXELL BULK*\n\n' +
+    'Total Pengguna : ' + (u.count || 0) + '\n' +
+    'Total Voucher  : ' + (v.count || 0) + '\n' +
+    'Total Login    : ' + (l.count || 0)
+  );
+}
+
+async function sendMsg(token, chatId, text) {
+  try {
+    const res = await fetch('https://api.telegram.org/bot' + token + '/sendMessage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'Markdown', disable_web_page_preview: true })
+    });
+    const data = await res.json();
+    if (!data.ok) {
+       console.error('[sendMsg] Telegram API Error:', data);
+       await fetch('https://api.telegram.org/bot' + token + '/sendMessage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true })
+       });
+    }
+  } catch (e) { console.error('[sendMsg] gagal kirim pesan:', e); }
+}
+
+function helpText() {
+  return 'CONTROL PANEL\n\n' +
+    'Kontrol Website:\n' +
+    '/menu — tampilkan tombol interaktif\n' +
+    '/close (pesan) — tutup web\n' +
+    '/open — buka web kembali\n' +
+    '/status — cek status web\n' +
+    '/api_status — cek status server API\n' +
+    '/cekapikey — cek status API (Running/Down/Stopped)\n' +
+    '/pages — cek status halaman\n' +
+    '/setpage (hal) (buka/tutup) — atur akses halaman\n' +
+    '/broadcast (pesan) — kirim banner ke web\n\n' +
+    'Manajemen User:\n' +
+    '/userinfo (username) — detail user\n' +
+    '/resetlimit (username) — reset kuota user\n' +
+    '/ban (username) — blokir user\n' +
+    '/unban (username) — buka blokir user\n' +
+    '/setvip (username) [hari] — jadikan VIP\n' +
+    '/setfree (username) — kembalikan ke Free\n' +
+    '/addlimit (username) (jumlah) — tambah kuota\n' +
+    '/rdlimit (username) (jumlah) — kurangi kuota\n' +
+    '/topup (username) (jumlah) — tambah saldo\n' +
+    '/role (username) (admin/user) — ubah role akun\n\n' +
+    'Tiket Support:\n' +
+    '/reply (id_tiket) (pesan) — balas tiket user\n' +
+    '/closeticket (id_tiket) — tutup tiket\n\n' +
+    'Voucher:\n' +
+    '/ctvoucher (kode) (tipe) (jumlah) (max)\n' +
+    '/listvoucher — lihat 25 voucher terakhir\n' +
+    '/delvoucher (kode) — hapus voucher\n' +
+    '/cekvoucher (kode) — cek pengguna voucher\n\n' +
+    'Lainnya:\n' +
+    '/stats — statistik website\n' +
+    '/allmenu — menu bantuan ini';
+}
+</textarea>
+
+<!-- TAMBAHAN: TEXTAREA UNTUK KODE WEBHOOK PAYMENT (SUDAH DIPERBARUI) -->
+<textarea id="payment-webhook-src" style="display:none;">
+const crypto = require('crypto');
+const { createClient } = require('@supabase/supabase-js');
+
+// Inisialisasi Supabase (Gunakan Service Role Key untuk bypass RLS saat update)
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
+
+  // 1. Ambil Signature dari Header (Menyesuaikan standar Cashi)
+  const signature = req.headers['x-gateway-signature'] || req.headers['x-cashi-signature'];
+  
+  if (!signature) {
+      return res.status(401).send('Missing signature');
+  }
+
+  // 2. Ambil Secret Key dari Vercel ENV
+  const secret = process.env.GATEWAY_SECRET_KEY || 'YOUR_SECRET_KEY';
+  
+  // 3. Siapkan Payload (Vercel otomatis parse ke object, kita ubah balik ke string)
+  const payload = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+  
+  // 4. Buat Hash HMAC-SHA256
+  const expected = crypto
+    .createHmac('sha256', secret)
+    .update(payload)
+    .digest('hex');
+
+  // 5. Verifikasi Signature
+  if (signature !== expected) {
+    console.warn('Signature tidak cocok!');
+    return res.status(401).send('Invalid signature');
+  }
+
+  // 6. Proses Event Pembayaran
+  const { event, data } = req.body;
+  const payloadData = data || req.body; 
+
+  if (event === 'PAYMENT_SETTLED' || event === 'payment.success') {
+    const orderId = payloadData.order_id || payloadData.merchantOrderId;
+    
+    // Handle test webhook dari dashboard Cashi
+    if (orderId?.startsWith('TEST-')) {
+      return res.status(200).send('Test OK');
+    }
+
+    if (payloadData.status === 'SETTLED' || payloadData.status === 'SUCCESS') {
+      try {
+        // Cari transaksi berdasarkan Order ID
+        const { data: trxData, error: getTrxError } = await supabase
+          .from('transactions')
+          .select('username, plan_type, amount')
+          .eq('order_id', orderId)
+          .single();
+
+        if (getTrxError || !trxData) {
+            console.warn('Transaksi tidak ditemukan:', orderId);
+            return res.status(200).send('Transaksi tidak ditemukan di DB');
+        }
+
+        // Update status di tabel transaksi menjadi success
+        await supabase
+          .from('transactions')
+          .update({ status: 'success' })
+          .eq('order_id', orderId);
+
+        // Berikan VIP atau Kuota ke User
+        if (trxData.plan_type === 'vip') {
+          const expiredAt = new Date();
+          expiredAt.setDate(expiredAt.getDate() + 30);
+          
+          await supabase.from('users').update({
+            tier: 'VIP',
+            limit_harian: 5000,
+            vip_expired_at: expiredAt.toISOString()
+          }).eq('username', trxData.username);
+        } else {
+          const { data: userData } = await supabase
+            .from('users')
+            .select('bonus_kuota')
+            .eq('username', trxData.username)
+            .single();
+            
+          await supabase.from('users').update({
+            bonus_kuota: (userData?.bonus_kuota || 0) + 1000 
+          }).eq('username', trxData.username);
+        }
+
+        return res.status(200).send('OK');
+      } catch (err) {
+        console.error('Webhook DB Error:', err);
+        return res.status(500).send('Internal Server Error');
+      }
+    }
+    
+    return res.status(200).send('Status not SETTLED');
+  }
+  
+  return res.status(200).send('Event ignored');
+}
+</textarea>
+
+<textarea id="email-backend-src" style="display:none;">
+import { Resend } from 'resend';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ message: 'Method not allowed' });
+  }
+
+  const { email, magicLink } = req.body;
+
+  if (!email || !magicLink) {
+    return res.status(400).json({ message: 'Email dan magicLink wajib diisi' });
+  }
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: 'Zyxell Bulk <onboarding@resend.dev>', 
+      to: [email],
+      subject: 'Verifikasi Akun Alight Motion Anda',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
+          <h2>Halo!</h2>
+          <p>Terima kasih telah menggunakan layanan Zyxell Bulk. Silakan klik tautan di bawah ini untuk memverifikasi akun Alight Motion Anda:</p>
+          <p style="text-align: center; margin: 30px 0;">
+            <a href="${magicLink}" style="background-color: #6366f1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+              Verifikasi Sekarang
+            </a>
+          </p>
+          <p>Atau, Anda bisa menyalin tautan ini ke browser Anda:</p>
+          <p><a href="${magicLink}">${magicLink}</a></p>
+          <p>Jika Anda tidak merasa melakukan permintaan ini, abaikan saja email ini.</p>
+          <br>
+          <p>Terima kasih,<br>Tim Zyxell Bulk</p>
+        </div>
+      `,
+    });
+
+    if (error) {
+      console.error('Resend Error:', error);
+      return res.status(500).json({ message: 'Gagal mengirim email', error });
+    }
+
+    return res.status(200).json({ success: true, data });
+
+  } catch (err) {
+    console.error('Server Error:', err);
+    return res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+  }
+}
+</textarea>
+
+<!-- ============ LOGIN & REGISTER — FORM DI-PATCH (ONSUBMIT INLINE) ============ -->
+<section id="screen-login" class="screen active">
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="brand">
+        <div class="logo">Zyxell</div>
+        <h1>Selamat Datang</h1>
+        <p>Masuk ke panel kontrol Zyxell Bulk Premium.</p>
+      </div>
+      
+      <form id="login-form" onsubmit="event.preventDefault(); try { if (typeof window.handleLoginSubmit === 'function') { var _p = window.handleLoginSubmit(event); if (_p && _p.catch) _p.catch(function(err){ console.error('Login async error:', err); try { if (typeof toast === 'function') toast('Error: ' + (err.message || 'Gagal login'), 'error'); } catch(_){} }); } else { try { if (typeof toast === 'function') toast('Sistem belum siap, tunggu sebentar', 'error'); } catch(_){} } } catch(e) { console.error('Login sync error:', e); try { if (typeof toast === 'function') toast('Error: ' + (e.message || 'Gagal login'), 'error'); } catch(_){} } return false;">
+        <label>Username</label>
+        <input id="login-user" type="text" placeholder="Masukkan username Anda" required>
+        <label>Email</label>
+        <input id="login-email" type="email" placeholder="Masukkan email Anda" required>
+        <label>Password</label>
+        <input id="login-pass" type="password" placeholder="Masukkan password Anda" required>
+        
+        <div class="cf-turnstile" data-sitekey="0x4AAAAAAFcVbSv21AyDWS06" data-theme="dark" style="margin-top: 16px; display: flex; justify-content: center;"></div>
+
+        <button type="submit" class="btn btn-primary btn-block" id="btn-login">Masuk ke Dashboard</button>
+        <p class="hint">Belum punya akun? <a href="#" id="to-register">Buat akun baru</a></p>
+      </form>
+
+      <form id="register-form" style="display: none;" onsubmit="event.preventDefault(); try { if (typeof window.handleRegisterSubmit === 'function') { var _p = window.handleRegisterSubmit(event); if (_p && _p.catch) _p.catch(function(err){ console.error('Register async error:', err); try { if (typeof toast === 'function') toast('Error: ' + (err.message || 'Gagal daftar'), 'error'); } catch(_){} }); } else { try { if (typeof toast === 'function') toast('Sistem belum siap, tunggu sebentar', 'error'); } catch(_){} } } catch(e) { console.error('Register sync error:', e); try { if (typeof toast === 'function') toast('Error: ' + (e.message || 'Gagal daftar'), 'error'); } catch(_){} } return false;">
+        <label>Username Baru</label>
+        <input id="reg-user" type="text" placeholder="Pilih username" required>
+        <label>Email Baru</label>
+        <input id="reg-email" type="email" placeholder="Masukkan email aktif" required>
+        <label>Password Baru</label>
+        <input id="reg-pass" type="password" placeholder="Buat password" required>
+        
+        <div class="cf-turnstile" data-sitekey="0x4AAAAAAFcVbSv21AyDWS06" data-theme="dark" style="margin-top: 16px; display: flex; justify-content: center;"></div>
+
+        <button type="submit" class="btn btn-primary btn-block" id="btn-register">Daftar Akun</button>
+        <p class="hint">Sudah punya akun? <a href="#" id="to-login">Kembali masuk</a></p>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DASHBOARD (USER) ============ -->
+<section id="screen-dashboard" class="screen">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand"><span>Zyxell</span> Bulk Premium</div>
+      </div>
+      <nav class="nav-menu">
+        <button class="nav-item active" data-tab="overview">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+          Overview
+        </button>
+        <button class="nav-item" data-tab="send">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+          Kirim Link
+        </button>
+        <button class="nav-item" data-tab="bulk">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+          Bulk Verify
+        </button>
+        <button class="nav-item" data-tab="store">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+          Booster
+        </button>
+        <button class="nav-item" data-tab="support">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+          Pusat Bantuan
+        </button>
+        <button class="nav-item" data-tab="history">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          Riwayat Generate
+        </button>
+        <button class="nav-item" data-tab="profile">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+          Profil
+        </button>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-profile" data-goto="profile">
+          <div class="avatar" id="user-avatar">A</div>
+          <div class="user-info">
+            <strong id="user-name">User</strong>
+            <small id="user-tier-badge">Free</small>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-block logout-btn" style="margin-top:0; padding:8px;">Keluar</button>
+      </div>
+    </aside>
+    <main class="main-content">
+      <header class="top-bar">
+        <div class="top-bar-left">
+          <div class="mobile-brand">Zyxell Bulk</div>
+          <div class="breadcrumb">Zyxell <span>/</span> <strong id="page-title">Dashboard</strong></div>
+        </div>
+        <div class="top-bar-right">
+          <button class="btn btn-ghost btn-sm" onclick="toggleTheme()" id="theme-toggle" style="padding: 6px 10px; font-size: 16px;">🌙</button>
+          <div class="status-badge"><div class="status-dot"></div> Online</div>
+          <button class="btn btn-ghost btn-sm logout-btn" style="display:none;">Keluar</button>
+        </div>
+      </header>
+      <div class="dashboard-content">
+        <div id="tab-overview" class="tab active">
+          <div id="user-announcement" class="announcement-banner" style="display: none;">
+            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
+            <div id="user-announcement-text"></div>
+          </div>
+          <div class="daily-reward-card">
+             <div class="daily-reward-left">
+                <div class="daily-reward-icon">🎁</div>
+                <div class="daily-reward-text"><h4>Hadiah Harian</h4><p>Klaim +5 kuota gratis setiap hari.</p></div>
+             </div>
+             <button class="btn btn-primary btn-sm" id="btn-checkin" onclick="claimDailyReward()">Klaim Kuota</button>
+          </div>
+          <div class="page-header"><h2>Ringkasan Dashboard</h2><p>Pantau aktivitas dan status akun Anda di sini.</p></div>
+          <div class="stats-grid">
+            <div class="stat-card"><div class="stat-card-header"><span class="stat-title">Link Terkirim</span></div><div class="stat-value" id="stat-sent">0</div><div class="stat-desc">Total tautan yang diproses.</div></div>
+            <div class="stat-card"><div class="stat-card-header"><span class="stat-title">Akun Premium</span></div><div class="stat-value" id="stat-verified">0</div><div class="stat-desc">Akun berhasil diverifikasi.</div></div>
+            <div class="stat-card"><div class="stat-card-header"><span class="stat-title">Bulk Aktif</span></div><div class="stat-value" id="stat-bulk">0</div><div class="stat-desc">Total generate massal.</div></div>
+          </div>
+          <div class="action-grid">
+            <div class="action-card" data-goto="send">
+              <div class="action-icon"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg></div>
+              <h3>Kirim Magic Link <span>&rarr;</span></h3><p>Verifikasi satu akun Alight Motion menggunakan email.</p>
+            </div>
+            <div class="action-card" data-goto="bulk">
+              <div class="action-icon"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg></div>
+              <h3>Bulk Verify <span>&rarr;</span></h3><p>Generate banyak akun premium secara otomatis.</p>
+            </div>
+          </div>
+          <div class="bottom-grid">
+            <div class="info-card">
+              <h3>Panduan Cepat</h3>
+              <div class="guide-step"><div class="step-num">1</div><div class="step-text"><strong>Masukkan Email:</strong> Buka menu Kirim Link dan masukkan email akun Alight Motion Anda.</div></div>
+              <div class="guide-step"><div class="step-num">2</div><div class="step-text"><strong>Cek Inbox:</strong> Tunggu beberapa saat, sistem akan mengirimkan tautan verifikasi ke email Anda.</div></div>
+              <div class="guide-step"><div class="step-num">3</div><div class="step-text"><strong>Verifikasi:</strong> Salin tautan tersebut, tempel di aplikasi, dan akun Anda akan langsung berubah menjadi Premium.</div></div>
+            </div>
+            <div class="info-card">
+              <h3>Butuh Bantuan?</h3>
+              <p class="step-text" style="margin-bottom: 16px;">Jika Anda mengalami kendala saat proses verifikasi atau email tidak masuk, silakan hubungi tim dukungan kami.</p>
+              <a href="https://wa.me/6285779126072?text=halo%20min%20saya%20butuh%20bantuan" target="_blank" class="btn btn-ghost btn-block" style="margin-top: 0; text-decoration: none; color: inherit; display: flex; align-items: center; justify-content: center;">Hubungi Support</a>
+            </div>
+          </div>
+        </div>
+
+        <div id="tab-send" class="tab">
+          <button class="back-btn" data-goto="overview"><svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg> Kembali ke Dashboard</button>
+          <div id="send-step-email" class="step active">
+            <div class="box narrow">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
+                <div>
+                  <h2 style="font-size:20px; margin-bottom:4px;">Kirim Magic Link</h2>
+                  <p style="font-size:13px; color:var(--text-muted);">Verifikasi 1 akun per generate.</p>
+                  <p id="send-quota-countdown" style="font-size:12px; color:var(--danger); margin-top:4px; display:none; font-weight: 500;"></p>
+                </div>
+                <div class="quota-badge"><span style="font-size: 12px; color: var(--text-muted);">Limit: </span><strong><span id="send-quota-remaining">0</span>/<span id="send-quota-limit">0</span></strong></div>
+              </div>
+              <form id="send-form">
+                <label>Alamat Email</label>
+                <input id="send-email" type="email" placeholder="contoh@email.com" required>
+                <button class="btn btn-primary btn-block" type="submit" id="send-btn">Kirim Tautan Verifikasi</button>
+              </form>
+            </div>
+          </div>
+          <div id="send-step-waiting" class="step">
+            <div class="box narrow">
+              <div class="waiting-box"><div class="spinner"></div><p>Tautan sedang dikirim ke</p><strong id="wait-email">—</strong></div>
+              <div id="auto-link-box" style="display:none; margin-top:24px;"><div class="link-box" id="auto-link-text"></div></div>
+              <label style="margin-top:24px;">Tempel Tautan Manual</label>
+              <textarea id="verify-link" rows="2"></textarea>
+              <div style="display:flex; gap:12px; margin-top:16px;">
+                <button class="btn btn-ghost" id="resend-btn" style="flex:1;">Kirim Ulang</button>
+                <button class="btn btn-primary" id="verify-btn" style="flex:1;">Verifikasi</button>
+              </div>
+              <button class="btn btn-ghost btn-block" id="cancel-send" style="margin-top:12px;">Batal</button>
+            </div>
+          </div>
+          <div id="send-step-success" class="step">
+            <div class="box narrow success-card">
+              <div class="success-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></div>
+              <h2>Verifikasi Berhasil!</h2>
+              <div class="result-box">
+                <div class="result-row"><span>Email</span><strong id="success-email">—</strong></div>
+                <div class="result-row"><span>Status</span><strong style="color:var(--success);">Premium Aktif</strong></div>
+                <div class="result-row"><span>Berlaku s/d</span><strong id="success-until">—</strong></div>
+              </div>
+              <button class="btn btn-primary btn-block" id="success-done" style="margin-top:32px;">Kembali ke Dashboard</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="tab-bulk" class="tab">
+          <button class="back-btn" data-goto="overview"><svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg> Kembali ke Dashboard</button>
+          <div class="box narrow">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
+              <div>
+                <h2 style="font-size:20px; margin-bottom:4px;">Bulk Auto Verify</h2>
+                <p style="font-size:13px; color:var(--text-muted);">Generate massal sesuai limit.</p>
+                <p id="bulk-quota-countdown" style="font-size:12px; color:var(--danger); margin-top:4px; display:none; font-weight: 500;"></p>
+              </div>
+              <div class="quota-badge"><span style="font-size: 12px; color: var(--text-muted);">Limit: </span><strong><span id="bulk-quota-remaining">0</span>/<span id="bulk-quota-limit">0</span></strong></div>
+            </div>
+            <label>Jumlah Akun</label>
+            <input id="bulk-count" type="number" min="1" max="100" value="5">
+            <button class="btn btn-primary btn-block" id="bulk-btn">Jalankan Bulk</button>
+            <div id="bulk-result" class="result-box" style="display:none"></div>
+            
+            <!-- UPDATE: HTML UNTUK PROGRESS BAR & LOG BULK VERIFY -->
+            <div id="bulk-progress-container" style="display: none; margin-top: 20px; text-align: left;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                    <span style="font-size: 12px; font-weight: 600; color: var(--text-main);">Progress</span>
+                    <span id="bulk-progress-text" style="font-size: 12px; color: var(--accent);">0%</span>
+                </div>
+                <div class="progress-bar-wrapper">
+                    <div class="progress-bar-fill" id="bulk-progress-fill"></div>
+                </div>
+                <div id="bulk-log-box"></div>
+            </div>
+            <!-- END UPDATE -->
+            
+          </div>
+        </div>
+
+        <!-- ============ TAB BOOSTER (GABUNGAN TOKO & RIWAYAT TRANSAKSI) ============ -->
+        <div id="tab-store" class="tab">
+          <div class="page-header"><h2>Booster Zyxell</h2><p>Beli kuota tambahan atau upgrade VIP secara instan.</p></div>
+          
+          <div class="store-grid">
+             <div class="store-item">
+                <h4>Booster</h4><p>+1000 Kuota Tambahan</p><div class="store-price">Rp 20.000</div>
+                <button class="btn btn-primary btn-block" onclick="initiateQrisPayment(20000, 'kuota')">Beli via QRIS</button>
+             </div>
+             <div class="store-item" style="border-color: var(--accent);">
+                <div style="position:absolute; top:10px; right:-30px; background:var(--accent); color:white; padding:2px 30px; transform:rotate(45deg); font-size:10px; font-weight:bold;">TERLARIS</div>
+                <h4>VIP 30 Hari</h4><p>Limit 5000/Hari + Badge VIP</p><div class="store-price">Rp 35.000</div>
+                <button class="btn btn-primary btn-block" onclick="initiateQrisPayment(35000, 'vip')">Beli via QRIS</button>
+             </div>
+          </div>
+
+          <div class="box" style="margin-top:24px; border-color: var(--success);">
+             <h3 style="font-size:14px; margin-bottom:8px; color:var(--success);">Simulasi Pembayaran</h3>
+             <p style="font-size:13px; color:var(--text-muted);">Pembayaran menggunakan QRIS (Semua Bank/E-Wallet). Setelah pembayaran berhasil, kuota atau VIP akan otomatis ditambahkan ke akun Anda.</p>
+          </div>
+
+          <!-- RIWAYAT TRANSAKSI DIPINDAHKAN KE SINI -->
+          <div style="margin-top: 32px;">
+            <h3 style="font-size:18px; font-weight:600; margin-bottom:16px;">Riwayat Transaksi</h3>
+            <div class="admin-table-container">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>ID Transaksi</th>
+                    <th>Plan</th>
+                    <th>Harga</th>
+                    <th>Status</th>
+                    <th style="text-align: right;">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="transaction-history-tbody">
+                  <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Memuat data...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!-- END RIWAYAT TRANSAKSI -->
+
+        </div>
+        <!-- ============================================= -->
+
+        <div id="tab-support" class="tab">
+           <div class="page-header"><h2>Pusat Bantuan</h2><p>Ada kendala? Kirim tiket, admin akan membalasnya.</p></div>
+           <div class="box" style="margin-bottom: 24px;">
+              <h3 style="font-size:16px; margin-bottom:16px;">Buat Tiket Baru</h3>
+              <form id="ticket-form">
+                 <label>Subjek Masalah</label><input type="text" id="ticket-subject" placeholder="Contoh: Kuota tidak bertambah" required>
+                 <label>Pesan / Detail Keluhan</label><textarea id="ticket-message" rows="3" placeholder="Jelaskan sedetail mungkin..." required></textarea>
+                 <button type="submit" class="btn btn-primary btn-block" id="ticket-btn">Kirim Tiket</button>
+              </form>
+           </div>
+           <h3 style="font-size:16px; margin-bottom:16px;">Riwayat Tiket Anda</h3>
+           <div id="support-tickets-list"><p style="color:var(--text-muted); font-size:14px;">Memuat tiket...</p></div>
+        </div>
+
+        <div id="tab-profile" class="tab">
+          <div class="page-header"><h2>Pengaturan Profil</h2></div>
+          <div class="box narrow">
+            <div class="profile-pic-wrapper">
+              <div class="profile-pic" id="profile-preview">A</div>
+              <label for="avatar-upload" class="btn btn-ghost btn-sm" style="cursor: pointer;">Pilih Foto Baru</label>
+              <input type="file" id="avatar-upload" class="file-input" accept="image/*">
+            </div>
+            <form id="profile-form">
+              <label>Username (Tidak dapat diubah)</label><input type="text" id="profile-username" disabled style="opacity: 0.6;">
+              <label>Alamat Email</label><input type="email" id="profile-email">
+              <label>Password Baru (Opsional)</label><input type="password" id="profile-password">
+              <label>Konfirmasi Password Baru</label><input type="password" id="profile-password-confirm">
+              <button type="submit" class="btn btn-primary btn-block" style="margin-top: 32px;">Simpan Perubahan</button>
+            </form>
+          </div>
+          <div class="box narrow" style="margin-top: 24px;">
+            <h3 style="font-size:16px; font-weight:600; margin-bottom:16px;">Program Referral</h3>
+            <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">Bagikan kode ini ke teman Anda. Dapatkan <strong>+50 Kuota</strong> untuk setiap teman yang mendaftar menggunakan kode Anda!</p>
+            <label>Kode Referral Anda</label>
+            <div style="display:flex; gap:8px;">
+              <input type="text" id="profile-referral-code" readonly style="font-weight:bold; letter-spacing:1px; text-align:center;">
+              <button class="btn btn-primary" onclick="copyReferral()">Copy</button>
+            </div>
+            <p style="font-size:12px; color:var(--text-muted); margin-top:12px;">Bonus Kuota Aktif: <strong id="profile-bonus-kuota" style="color:var(--success);">0</strong></p>
+          </div>
+          <div class="box narrow" style="margin-top: 24px;">
+            <h3 style="font-size:16px; font-weight:600; margin-bottom:16px;">Tukar Voucher</h3>
+            <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">Punya kode promo? Tukarkan di sini untuk mendapatkan bonus kuota atau upgrade VIP!</p>
+            <div style="display:flex; gap:8px;">
+              <input type="text" id="redeem-voucher-input" placeholder="Masukkan Kode Voucher" style="text-transform:uppercase;">
+              <button class="btn btn-primary" id="redeem-voucher-btn" onclick="redeemVoucher()">Tukar</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="tab-history" class="tab">
+          <div class="page-header" style="display:flex; justify-content:space-between; align-items: flex-end;">
+            <div><h2>Riwayat Generate</h2><p>Catatan generate Anda.</p></div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-ghost btn-sm" id="export-history-btn">Export CSV</button>
+              <button class="btn btn-danger btn-sm" id="clear-history">Hapus</button>
+            </div>
+          </div>
+          <div id="history-list" class="history-list"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</section>
+
+<!-- ============ ADMIN PANEL ============ -->
+<section id="screen-admin" class="screen">
+  <div class="layout">
+    <aside class="sidebar" style="background: var(--bg-surface);">
+      <div class="sidebar-header">
+        <div class="sidebar-brand" style="color: var(--danger);"><span style="background: var(--danger); color: white; border: none;">ADMIN</span> Panel</div>
+      </div>
+      <nav class="nav-menu">
+        <button class="nav-item active" data-tab="admin-dashboard"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>Dashboard</button>
+        <button class="nav-item" data-tab="admin-overview"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>Pengaturan Web</button>
+        <button class="nav-item" data-tab="admin-users"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>Data Pengguna</button>
+        <button class="nav-item" data-tab="admin-roles"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>Manajemen Role</button>
+        <button class="nav-item" data-tab="admin-vouchers"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"></path></svg>Voucher</button>
+        <button class="nav-item" data-tab="admin-announcement"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>Pengumuman</button>
+        <button class="nav-item" data-tab="admin-logs"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>Log Login</button>
+        <button class="nav-item" data-tab="admin-audit"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>Log Admin</button>
+        <button class="nav-item" data-tab="admin-api-status"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path></svg>Status API</button>
+        <button class="nav-item" data-tab="admin-email-test"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>Tes Email (Resend)</button>
+        <button class="nav-item" data-tab="admin-account"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>Akun Admin</button>
+      </nav>
+      <div class="sidebar-footer">
+        <button class="btn btn-ghost btn-block logout-btn" style="margin-top:0; padding:8px;">Keluar dari Admin</button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="top-bar">
+        <div class="top-bar-left">
+          <div class="breadcrumb">Admin <span>/</span> <strong id="admin-page-title">Dashboard</strong></div>
+        </div>
+        <div class="top-bar-right">
+          <div class="notif-wrapper">
+            <button class="notif-btn" onclick="toggleNotifPanel()">
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+              <span class="notif-badge" id="notif-count">0</span>
+            </button>
+            <div id="notif-dropdown" class="notif-dropdown">
+              <div class="notif-header"><span>Notifikasi</span><button onclick="clearNotifs()" style="background:none; border:none; font-size:11px; color:var(--accent); cursor:pointer;">Bersihkan</button></div>
+              <div id="notif-list"></div>
+            </div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="toggleTheme()" id="theme-toggle-admin" style="padding: 6px 10px; font-size: 16px;">🌙</button>
+          <div class="status-badge" style="color: var(--danger); background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.2);"><div class="status-dot" style="background: var(--danger);"></div> Admin Mode</div>
+        </div>
+      </header>
+
+      <div class="dashboard-content">
+        <div id="tab-admin-dashboard" class="tab active">
+          <div class="page-header"><h2>Ringkasan Sistem</h2><p>Pantau statistik website secara keseluruhan.</p></div>
+          <div class="stats-grid">
+            <div class="stat-card"><div class="stat-card-header"><span class="stat-title">Total Pengguna</span></div><div class="stat-value" id="stat-total-users">0</div><div class="stat-desc">Akun terdaftar.</div></div>
+            <div class="stat-card"><div class="stat-card-header"><span class="stat-title">Total Login</span></div><div class="stat-value" id="stat-total-logins">0</div><div class="stat-desc">Riwayat login tercatat.</div></div>
+            <div class="stat-card"><div class="stat-card-header"><span class="stat-title">Log Admin</span></div><div class="stat-value" id="stat-total-admin-logs">0</div><div class="stat-desc">Tindakan admin tercatat.</div></div>
+          </div>
+          <div class="box" style="margin-top: 24px;"><h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px;">Grafik Aktivitas (7 Hari Terakhir)</h3><canvas id="activityChart" height="100"></canvas></div>
+          <div class="box narrow" style="margin-top: 24px;">
+             <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">Backup Database</h3>
+             <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">Kirim ringkasan data (Total User & Voucher) ke Bot Telegram.</p>
+             <button class="btn btn-success btn-block" id="backup-telegram-btn">Backup Data ke Telegram</button>
+          </div>
+        </div>
+
+        <div id="tab-admin-overview" class="tab">
+          <div class="page-header"><h2>Pengaturan Web</h2><p>Buka atau tutup akses web AM Bulk secara global.</p></div>
+          <div class="box narrow">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div><h3 style="font-size: 16px; font-weight: 600;">Status Web</h3><p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;" id="web-status-text">Sedang Memuat...</p></div>
+              <label class="switch"><input type="checkbox" id="web-status-toggle"><span class="slider"></span></label>
+            </div>
+          </div>
+          <div class="box narrow" style="margin-top: 24px;">
+             <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">Pesan Maintenance</h3>
+             <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">Ubah teks yang muncul saat web ditutup.</p>
+             <textarea id="maintenance-message-input" rows="3" placeholder="Masukkan pesan..."></textarea>
+             <button class="btn btn-primary btn-block" id="save-maintenance-btn">Simpan Pesan</button>
+          </div>
+          <div class="box narrow" style="margin-top: 24px;">
+             <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">Jadwal Maintenance Otomatis</h3>
+             <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">Web akan otomatis ditutup pada rentang waktu di bawah ini.</p>
+             <label>Mulai Maintenance</label><input type="datetime-local" id="maintenance-start-input">
+             <label style="margin-top: 12px;">Selesai Maintenance</label><input type="datetime-local" id="maintenance-end-input">
+             <button class="btn btn-primary btn-block" id="save-jadwal-btn" style="margin-top: 16px;">Simpan Jadwal</button>
+          </div>
+          <div class="box narrow" style="margin-top: 24px;">
+             <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">Kontrol Akses Halaman</h3>
+             <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">Buka atau tutup akses ke halaman tertentu untuk pengguna.</p>
+             <div class="page-access-list" id="page-access-list"></div>
+          </div>
+          <div class="box narrow" style="margin-top: 24px;">
+             <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">Integrasi Telegram Bot</h3>
+             <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">Simpan token & chat ID, lalu aktifkan webhook. Gunakan command <code>/menu</code> di Telegram untuk tombol interaktif.</p>
+             <label>Bot Token</label><input type="text" id="telegram-token-input" placeholder="123456:ABC-DEF...">
+             <label style="margin-top: 12px;">Admin Chat ID</label><input type="text" id="telegram-chat-input" placeholder="123456789">
+             <div style="display:flex; gap:8px; margin-top: 16px;">
+               <button class="btn btn-primary" id="save-telegram-btn" style="flex:1;">Simpan Token</button>
+               <button class="btn btn-ghost" id="set-webhook-btn" style="flex:1;">Aktifkan Webhook</button>
+             </div>
+             <button class="btn btn-ghost btn-block" id="test-bot-btn" style="margin-top:8px;">Test Koneksi Bot</button>
+             <div id="webhook-status" style="margin-top:14px; font-size:12px; color:var(--text-muted);"></div>
+             <hr style="border:0; border-top:1px solid var(--border-color); margin:20px 0;">
+             <h4 style="font-size:14px; font-weight:600; margin-bottom:8px;">Panduan Command Bot Baru</h4>
+             <div style="font-size:12px; color:var(--text-muted); line-height:1.8; background:var(--bg-base); padding:14px; border-radius:8px; border:1px solid var(--border-color);">
+               <b style="color:var(--text-main);">Menu Interaktif</b><br><code>/menu</code><br>Menampilkan tombol (Inline Keyboard) untuk buka/tutup web & statistik.<br><br>
+               <b style="color:var(--text-main);">Broadcast Banner</b><br><code>/broadcast Halo semuanya, maintenance malam ini!</code><br>Mengubah teks pengumuman di dashboard semua user secara real-time.<br><br>
+               <b style="color:var(--text-main);">Manajemen User & Lainnya</b><br><code>/addlimit Zyxell 50</code> — tambah kuota<br><code>/setvip Zyxell 30</code> — jadikan VIP 30 hari<br><code>/role Zyxell admin</code> — jadikan Admin<br><code>/userinfo Zyxell</code> — cek detail user<br><code>/stats</code> — statistik website<br>
+             </div>
+             <button class="btn btn-ghost btn-block" id="view-backend-btn" style="margin-top:16px;">Lihat & Copy Backend Code (api/telegram-webhook.js)</button>
+             
+             <button class="btn btn-ghost btn-block" id="view-payment-webhook-btn" style="margin-top:8px;">Lihat & Copy Backend Code Webhook (api/payment-webhook.js)</button>
+
+             <button class="btn btn-ghost btn-block" id="view-email-backend-btn" style="margin-top:8px;">Lihat & Copy Backend Code Email (api/send-email.js)</button>
+             
+          </div>
+          <div class="box narrow" style="margin-top: 24px; border-color: var(--danger);">
+             <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 8px; color: var(--danger);">API Key Rotation</h3>
+             <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">Masukkan beberapa API Key (pisahkan dengan koma).</p>
+             <textarea id="api-key-input" rows="3" placeholder="key1, key2, key3..."></textarea>
+             <div style="display: flex; gap: 8px; margin-top: 12px;">
+               <button class="btn btn-danger" id="save-api-key-btn" style="flex: 1;">Simpan</button>
+               <button class="btn btn-ghost" id="test-api-key-btn" style="flex: 1;">Test API</button>
+             </div>
+          </div>
+        </div>
+
+        <div id="tab-admin-users" class="tab">
+          <div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 24px;">
+            <div><h2>Data Pengguna</h2><p>Daftar akun yang terdaftar di web AM Bulk.</p></div>
+            <button class="btn btn-ghost" onclick="exportUsersToCSV()"><svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: 6px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>Export CSV</button>
+          </div>
+          <div class="box" style="padding: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+              <div class="search-wrapper">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                <input type="text" id="search-user-input" placeholder="Cari username atau email...">
+              </div>
+              <div id="bulk-actions" style="display: none; gap: 8px; align-items: center;">
+                <span style="font-size: 13px; font-weight: 500; margin-right: 8px;"><span id="selected-count">0</span> terpilih:</span>
+                <button class="btn btn-danger btn-sm" onclick="executeBulkAction('ban')">Ban</button>
+                <button class="btn btn-success btn-sm" onclick="executeBulkAction('unban')">Unban</button>
+                <button class="btn btn-primary btn-sm" onclick="executeBulkAction('reset')">Reset Kuota</button>
+              </div>
+            </div>
+            <div class="admin-table-container">
+              <table class="admin-table">
+                <thead><tr><th style="width: 40px; text-align: center;"><input type="checkbox" id="select-all-users" onchange="toggleSelectAll(this)" style="cursor: pointer;"></th><th>Username</th><th>Email</th><th>Tier</th><th>IP Address</th><th>Limit/Hari</th><th>Status</th><th style="text-align: right;">Aksi</th></tr></thead>
+                <tbody id="admin-users-tbody"><tr><td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">Memuat data...</td></tr></tbody>
+              </table>
+            </div>
+            <div class="pagination-wrapper">
+              <span id="pagination-info" style="font-size:13px; color:var(--text-muted);"></span>
+              <div style="display:flex; gap:8px;">
+                <button class="btn btn-ghost btn-sm" id="btn-prev-page" onclick="changePage(-1)">Previous</button>
+                <button class="btn btn-ghost btn-sm" id="btn-next-page" onclick="changePage(1)">Next</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="tab-admin-roles" class="tab">
+          <div class="page-header"><h2>Manajemen Role</h2><p>Atur hak akses akun (Admin / User).</p></div>
+          <div class="box">
+            <div class="admin-table-container">
+              <table class="admin-table">
+                <thead><tr><th>Username</th><th>Email</th><th>Role Saat Ini</th><th style="text-align: right;">Aksi</th></tr></thead>
+                <tbody id="admin-roles-tbody"><tr><td colspan="4" style="text-align: center; padding: 40px; color: var(--text-muted);">Memuat data...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div id="tab-admin-vouchers" class="tab">
+          <div class="page-header"><h2>Manajemen Voucher</h2><p>Buat dan kelola kode voucher untuk pengguna.</p></div>
+          <div class="box">
+            <div style="display:flex; gap:16px; margin-bottom:24px; flex-wrap:wrap;">
+              <div style="flex:1; min-width:200px;"><label>Kode Voucher</label><input type="text" id="new-voucher-code" placeholder="Contoh: ZYXELL50" style="text-transform:uppercase;"></div>
+              <div style="flex:1; min-width:150px;"><label>Tipe Reward</label><select id="new-voucher-type"><option value="kuota">Tambah Kuota</option><option value="vip">Upgrade VIP</option></select></div>
+              <div style="flex:1; min-width:100px;"><label>Jumlah (Jika Kuota)</label><input type="number" id="new-voucher-amount" value="50" min="1"></div>
+              <div style="flex:1; min-width:100px;"><label>Max Penggunaan</label><input type="number" id="new-voucher-max" value="100" min="1"></div>
+              <div style="display:flex; align-items:flex-end;"><button class="btn btn-primary" onclick="createVoucher()">Buat Voucher</button></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <h3 style="font-size:16px;">Daftar Voucher</h3>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <div id="voucher-bulk-actions" style="display:none; gap:8px; align-items:center; margin-right:12px; background:var(--bg-surface-hover); padding:4px 12px; border-radius:6px;">
+                        <span style="font-size:13px; font-weight:500;"><span id="selected-voucher-count">0</span> terpilih</span>
+                        <button class="btn btn-danger btn-sm" onclick="executeBulkDeleteVouchers()">Hapus Terpilih</button>
+                    </div>
+                    
+                    <button class="btn btn-success btn-sm" onclick="openBulkVoucherModal()">Generate Voucher Massal</button>
+                    <label class="btn btn-ghost btn-sm" style="cursor:pointer;">Import CSV <input type="file" id="bulk-voucher-upload" accept=".csv" style="display:none;"></label>
+                </div>
+            </div>
+            <div class="admin-table-container">
+              <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40px; text-align: center;"><input type="checkbox" id="select-all-vouchers" onchange="toggleSelectAllVouchers(this)" style="cursor: pointer;"></th>
+                        <th>Kode</th>
+                        <th>Reward</th>
+                        <th>Terpakai</th>
+                        <th>Batas</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="admin-vouchers-tbody"><tr><td colspan="6">Memuat data...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div id="tab-admin-announcement" class="tab">
+          <div class="page-header"><h2>Pengumuman Dashboard</h2><p>Kirim pesan/banner yang akan muncul di atas dashboard semua pengguna.</p></div>
+          <div class="box narrow">
+            <label>Isi Pengumuman</label>
+            <textarea id="announcement-input" rows="4" placeholder="Kosongkan jika ingin menyembunyikan banner..."></textarea>
+            <button class="btn btn-primary btn-block" id="save-announcement-btn">Simpan Pengumuman</button>
+          </div>
+        </div>
+
+        <div id="tab-admin-logs" class="tab">
+          <div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-end;">
+            <div><h2>Log Login</h2><p>Catatan riwayat masuk pengguna ke web AM Bulk.</p></div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-ghost btn-sm" onclick="exportLoginLogs()">Export CSV</button>
+              <button class="btn btn-danger btn-sm" onclick="clearLoginLogs()">Hapus Log Lama</button>
+            </div>
+          </div>
+          <div class="box">
+            <div class="admin-table-container">
+              <table class="admin-table">
+                <thead><tr><th>Username</th><th>IP Address</th><th>Waktu Login</th><th>Bulk Diproses</th></tr></thead>
+                <tbody id="admin-logs-tbody"><tr><td colspan="4">Memuat data...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div id="tab-admin-audit" class="tab">
+          <div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-end;">
+            <div><h2>Log Aktivitas Admin</h2><p>Catatan tindakan yang dilakukan oleh Admin.</p></div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-ghost btn-sm" onclick="exportAdminLogs()">Export CSV</button>
+              <button class="btn btn-danger btn-sm" onclick="clearAdminLogs()">Hapus Log</button>
+            </div>
+          </div>
+          <div class="box">
+            <div class="admin-table-container">
+              <table class="admin-table">
+                <thead><tr><th>Admin</th><th>Tindakan</th><th>Waktu</th></tr></thead>
+                <tbody id="admin-audit-tbody"><tr><td colspan="3">Memuat data...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- FITUR BARU: TAB STATUS API -->
+        <div id="tab-admin-api-status" class="tab">
+          <div class="page-header"><h2>Status API Server</h2><p>Pantau kondisi API Key Kayz secara real-time. Halaman ini hanya bisa diakses oleh Admin.</p></div>
+          <div class="box narrow" style="max-width: 100%;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+              <h3 style="font-size:16px;">Daftar API Key</h3>
+              <button class="btn btn-primary btn-sm" onclick="renderAdminApiStatus()">Refresh Status</button>
+            </div>
+            <div class="admin-table-container">
+              <table class="admin-table">
+                <thead><tr><th>No</th><th>API Key</th><th>Status</th><th>Latensi</th><th>Aksi</th></tr></thead>
+                <tbody id="admin-api-status-tbody">
+                  <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Memuat data...</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div style="margin-top:20px;">
+              <label>Update API Keys (Pisahkan dengan koma)</label>
+              <textarea id="api-key-input-status" rows="3" placeholder="key1, key2, key3..."></textarea>
+              <button class="btn btn-primary btn-block" id="save-api-key-btn-status" style="margin-top:12px;">Simpan API Key</button>
+            </div>
+          </div>
+        </div>
+        <!-- END FITUR BARU -->
+
+        <!-- FITUR BARU: TAB TES EMAIL -->
+        <div id="tab-admin-email-test" class="tab">
+          <div class="page-header"><h2>Tes Pengiriman Email</h2><p>Uji coba fitur Resend API untuk memastikan email verifikasi masuk ke pengguna.</p></div>
+          
+          <div class="box narrow" style="max-width: 100%;">
+             <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 250px;">
+                   <label>Alamat Email Tujuan</label>
+                   <input type="email" id="test-email-target" placeholder="Masukkan email Anda untuk tes...">
+                </div>
+                <div style="flex: 1; min-width: 250px;">
+                   <label>Magic Link (Dummy)</label>
+                   <input type="text" id="test-email-link" value="https://alight-motion.com/dummy-link-test" placeholder="https://...">
+                </div>
+             </div>
+             <button class="btn btn-primary btn-block" id="btn-send-test-email" onclick="sendTestEmail()">Kirim Tes Email</button>
+             
+             <div id="test-email-result" style="margin-top: 20px; display: none; padding: 16px; border-radius: 8px; font-size: 14px;"></div>
+
+             <!-- TAMBAHAN: BROADCAST EMAIL -->
+             <div style="margin-top: 24px; padding-top: 24px; border-top: 1px dashed var(--border-color);">
+                 <h3 style="font-size:16px; margin-bottom: 8px; color: var(--danger);">Broadcast Email Massal</h3>
+                 <p style="font-size:13px; color:var(--text-muted); margin-bottom: 16px;">Kirim email ke SEMUA pengguna terdaftar. Gunakan fitur ini dengan bijak (Perhatikan limit Resend).</p>
+                 <button class="btn btn-danger btn-block" id="btn-broadcast-email" onclick="broadcastEmail()">Kirim Broadcast Email ke SEMUA User</button>
+             </div>
+             <!-- END TAMBAHAN -->
+
+             <h3 style="font-size:16px; margin-top: 32px; margin-bottom: 16px;">Log Pengiriman (Sesi Ini)</h3>
+             <div class="admin-table-container">
+               <table class="admin-table">
+                 <thead><tr><th>Email Tujuan</th><th>Status</th><th>Waktu</th></tr></thead>
+                 <tbody id="test-email-log-tbody">
+                    <tr><td colspan="3" style="text-align: center; color: var(--text-muted);">Belum ada tes email.</td></tr>
+                 </tbody>
+               </table>
+             </div>
+          </div>
+        </div>
+
+        <div id="tab-admin-account" class="tab">
+          <div class="page-header"><h2>Keamanan Akun Admin</h2><p>Ubah password login Anda. Jangan berikan akses ke orang lain.</p></div>
+          <div class="box narrow">
+            <form id="admin-account-form">
+              <label>Password Saat Ini (Wajib)</label><input type="password" id="admin-current-pass" placeholder="Masukkan password admin saat ini" required>
+              <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 24px 0;">
+              <label>Password Baru</label><input type="password" id="admin-new-pass" placeholder="Password admin baru" required>
+              <button type="submit" class="btn btn-primary btn-block" style="margin-top: 32px;">Simpan Perubahan Password</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</section>
+
+<div id="toast" class="toast"></div>
+
+<!-- =========================================================== -->
+<!-- SCRIPT FILES (URUTAN SANGAT PENTING - JANGAN DIACAK!)       -->
+<!-- =========================================================== -->
+<script src="js/01-config.js"></script>
+<script src="js/02-helpers.js"></script>
+<script src="js/03-ui.js"></script>
+<script src="js/04-payment.js"></script>
+<script src="js/05-quota.js"></script>
+<script src="js/06-admin-users.js"></script>
+<script src="js/07-admin-vouchers.js"></script>
+<script src="js/08-admin-settings.js"></script>
+<script src="js/09-profile.js"></script>
+<script src="js/10-auth.js"></script>
+<script src="js/11-user-actions.js"></script>
+<script src="js/12-init.js"></script>
+
+</body>
+</html>
