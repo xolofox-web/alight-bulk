@@ -1,0 +1,422 @@
+async function requestTopup(type, amount) {
+  if (!state.user) return;
+  const confirmPay = confirm(`Kirim request topup ${type === 'vip' ? 'VIP 30 Hari' : '+50 Kuota'} ke Admin?`);
+  if (!confirmPay) return;
+  
+  toast('Mengirim request ke Admin...', 'info');
+  try {
+    const res = await fetch('/api/telegram-webhook', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'request_topup', username: state.user.username, amount, type })
+    });
+    if (res.ok) toast('Request terkirim! Admin akan segera memproses.', 'success');
+    else throw new Error('Gagal mengirim request');
+  } catch (err) { toast('Gagal: ' + err.message, 'error'); }
+}
+
+const formatRupiah = (angka) => {
+  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
+};
+
+// ============================================================
+// FUNGSI PEMBAYARAN QRIS & RIWAYAT TRANSAKSI
+// ============================================================
+
+async function initiateQrisPayment(amount, type, existingOrderId = null, existingExpiresAt = null) {
+  if (!state.user) return toast('Anda harus login terlebih dahulu', 'error');
+
+  // Jika melanjutkan transaksi yang sudah ada (dari tombol "Bayar")
+  if (existingOrderId) {
+      currentOrderId = existingOrderId;
+      currentAmount = amount;
+      
+      const { data: trx, error: trxErr } = await supabaseClient
+          .from('transactions').select('*').eq('order_id', existingOrderId).single();
+      
+      if (trxErr || !trx) return toast('Transaksi tidak ditemukan di database.', 'error');
+      
+      // Cek kompatibilitas status lama & baru
+      let currentStatus = trx.status;
+      if (currentStatus === 'success') currentStatus = 'succeed';
+      if (currentStatus === 'failed') currentStatus = 'cancelled';
+
+      // Cek status: jika sudah succeed atau cancelled, tidak bisa dilanjutkan
+      if (currentStatus === 'succeed') return toast('Transaksi ini sudah berhasil dibayar.', 'info');
+      if (currentStatus === 'cancelled') return toast('Transaksi ini sudah dibatalkan dan tidak dapat dilanjutkan.', 'error');
+      
+      // Tampilkan Modal QRIS dengan data lama
+      document.getElementById('qris-product-name').textContent = type === 'vip' ? 'VVIP UPGRADE (30 HARI)' : 'BOOSTER (+1000 KUOTA)';
+      document.getElementById('qris-order-id').textContent = existingOrderId;
+      document.getElementById('qris-nominal').textContent = formatRupiah(amount);
+      document.getElementById('qris-total').textContent = formatRupiah(amount);
+      
+      const statusBox = document.getElementById('qris-status-box');
+      statusBox.className = 'qris-status-wrapper';
+      document.getElementById('qris-status-text').textContent = 'Menunggu Pembayaran...';
+      
+      document.getElementById('qris-modal').style.display = 'flex';
+      document.getElementById('qris-loading').style.display = 'none';
+      document.getElementById('qris-content').style.display = 'block';
+      
+      let qrSource = trx.qr_url;
+      if (!qrSource) {
+          qrSource = 'https://via.placeholder.com/250x250?text=QR+Tidak+Ditemukan';
+      } else if (!qrSource.startsWith('http') && !qrSource.startsWith('data:image')) {
+          qrSource = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrSource)}`;
+      }
+      document.getElementById('qris-image').src = qrSource;
+      
+      // Mulai hitung mundur dan polling status
+      startQrisCountdown(trx.expires_at || existingExpiresAt);
+      pollPaymentStatus(existingOrderId);
+      return;
+  }
+
+  // Membuat transaksi baru
+  const orderId = `INV-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  currentOrderId = orderId;
+  currentAmount = amount;
+
+  const productName = type === 'vip' ? 'VVIP UPGRADE (30 HARI)' : 'BOOSTER (+1000 KUOTA)';
+  
+  document.getElementById('qris-product-name').textContent = productName;
+  document.getElementById('qris-order-id').textContent = orderId;
+  document.getElementById('qris-nominal').textContent = formatRupiah(amount);
+  document.getElementById('qris-total').textContent = formatRupiah(amount);
+  document.getElementById('qris-countdown').textContent = '15:00';
+  
+  const statusBox = document.getElementById('qris-status-box');
+  statusBox.className = 'qris-status-wrapper';
+  document.getElementById('qris-status-text').textContent = 'Menunggu Pembayaran...';
+  
+  document.getElementById('qris-modal').style.display = 'flex';
+  document.getElementById('qris-loading').style.display = 'block';
+  document.getElementById('qris-content').style.display = 'none';
+
+  try {
+    let data;
+    try {
+        // Panggil backend untuk membuat order ke Cashi
+        const res = await fetch('/api/cashi/create-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount, order_id: orderId, username: state.user.username, type })
+        });
+        data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.message || 'API Gagal');
+    } catch (apiError) {
+        throw new Error('Gagal membuat QRIS: ' + apiError.message);
+    }
+
+    document.getElementById('qris-loading').style.display = 'none';
+    document.getElementById('qris-content').style.display = 'block';
+    
+    let qrSource = data.qr_url || data.qr_string;
+    if (!qrSource && data.raw) {
+        const raw = data.raw.data || data.raw;
+        qrSource = raw.qr_url || raw.qr_string || raw.qr_code || raw.payment_url || raw.qrString;
+    }
+    
+    if (!qrSource) {
+        throw new Error('Backend tidak mengirim data QR.');
+    }
+
+    if (!qrSource.startsWith('http') && !qrSource.startsWith('data:image')) {
+        qrSource = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrSource)}`;
+    }
+
+    const qrImage = document.getElementById('qris-image');
+    qrImage.src = qrSource;
+    qrImage.onerror = function() {
+        this.onerror = null;
+        this.src = 'https://via.placeholder.com/250x250?text=Gagal+Memuat+Gambar+QR';
+    };
+
+    // Simpan transaksi baru ke database dengan status 'pending'
+    const { error: dbError } = await supabaseClient.from('transactions').insert([{
+        username: state.user.username,
+        order_id: orderId,
+        product_name: productName,
+        plan_type: type,
+        amount: amount,
+        status: 'pending',
+        qr_url: qrSource,
+        expires_at: data.expires_at || new Date(Date.now() + 15 * 60000).toISOString()
+    }]);
+
+    // ============================================================
+    // PERUBAHAN PENTING: Munculkan Error Jika DB Menolak
+    // ============================================================
+    if (dbError) {
+        console.error("Gagal simpan ke DB:", dbError);
+        throw new Error('Database Supabase menolak transaksi. (' + dbError.message + ')');
+    }
+    
+    startQrisCountdown(data.expires_at || null);
+    pollPaymentStatus(orderId);
+
+  } catch (err) {
+    document.getElementById('qris-loading').style.display = 'none';
+    document.getElementById('qris-content').style.display = 'block';
+    statusBox.className = 'qris-status-wrapper error';
+    document.getElementById('qris-status-text').innerHTML = err.message;
+    toast('Gagal memuat QRIS.', 'error');
+  }
+}
+
+function startQrisCountdown(expiresAtStr) {
+  if (qrisCountdownInterval) clearInterval(qrisCountdownInterval);
+  
+  let targetTime = expiresAtStr ? new Date(expiresAtStr).getTime() : new Date().getTime() + 15 * 60 * 1000;
+
+  qrisCountdownInterval = setInterval(() => {
+    const now = new Date().getTime();
+    const distance = targetTime - now;
+
+    if (distance < 0) {
+      clearInterval(qrisCountdownInterval);
+      document.getElementById('qris-countdown').textContent = '00:00';
+      document.getElementById('qris-status-box').className = 'qris-status-wrapper error';
+      document.getElementById('qris-status-text').textContent = 'Waktu Habis';
+      if (qrisPollInterval) clearInterval(qrisPollInterval);
+      // TIDAK ADA AUTO CANCEL DI SINI. Status DB tetap PENDING.
+      return;
+    }
+
+    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+    document.getElementById('qris-countdown').textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  }, 1000);
+}
+
+function pollPaymentStatus(orderId) {
+  if (qrisPollInterval) clearInterval(qrisPollInterval);
+  
+  qrisPollInterval = setInterval(async () => {
+    try {
+      // Cek status ke backend (yang akan meneruskan ke Cashi)
+      const res = await fetch(`/api/cashi/check-status?order_id=${orderId}`);
+      const data = await res.json();
+      
+      const statusBox = document.getElementById('qris-status-box');
+      const statusText = document.getElementById('qris-status-text');
+
+      // Jika Cashi mengembalikan status SETTLED atau SUCCESS
+      if (data.status === 'SETTLED' || data.status === 'SUCCESS') {
+        clearInterval(qrisPollInterval);
+        clearInterval(qrisCountdownInterval);
+        statusBox.className = 'qris-status-wrapper success';
+        statusText.innerHTML = 'Pembayaran Berhasil';
+        
+        // Update status di database menjadi 'succeed'
+        await supabaseClient.from('transactions').update({ status: 'succeed' }).eq('order_id', orderId);
+        
+        toast('Pembayaran berhasil!', 'success');
+        setTimeout(() => {
+          closeQrisModal();
+          syncUserData();
+          loadTransactionHistory();
+        }, 3000);
+      } else if (data.status === 'EXPIRED') {
+        clearInterval(qrisPollInterval);
+        clearInterval(qrisCountdownInterval);
+        statusBox.className = 'qris-status-wrapper error';
+        statusText.textContent = 'QRIS Kedaluwarsa';
+        // TIDAK ADA AUTO CANCEL DI SINI. Status DB tetap PENDING.
+      }
+    } catch (e) { 
+      console.log('Polling error', e); 
+    }
+  }, 5000);
+}
+
+async function checkTransactionStatus(btn) {
+  if (!currentOrderId) return;
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Mengecek...';
+
+  try {
+    const res = await fetch(`/api/cashi/check-status?order_id=${currentOrderId}`);
+    const data = await res.json();
+    
+    const statusBox = document.getElementById('qris-status-box');
+    const statusText = document.getElementById('qris-status-text');
+
+    if (data.status === 'SETTLED' || data.status === 'SUCCESS') {
+      if (qrisPollInterval) clearInterval(qrisPollInterval);
+      if (qrisCountdownInterval) clearInterval(qrisCountdownInterval);
+      statusBox.className = 'qris-status-wrapper success';
+      statusText.innerHTML = 'Pembayaran Berhasil';
+      
+      await supabaseClient.from('transactions').update({ status: 'succeed' }).eq('order_id', currentOrderId);
+      toast('Pembayaran berhasil!', 'success');
+      setTimeout(() => {
+        closeQrisModal();
+        syncUserData();
+        loadTransactionHistory();
+      }, 3000);
+    } else if (data.status === 'EXPIRED') {
+      if (qrisPollInterval) clearInterval(qrisPollInterval);
+      if (qrisCountdownInterval) clearInterval(qrisCountdownInterval);
+      statusBox.className = 'qris-status-wrapper error';
+      statusText.textContent = 'QRIS Kedaluwarsa';
+      toast('QRIS kedaluwarsa. Transaksi tetap PENDING.', 'info');
+    } else {
+      toast('Status: ' + (data.status || 'PENDING') + '. Belum ada pembayaran masuk.', 'info');
+    }
+  } catch (e) {
+    toast('Gagal mengecek status transaksi.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
+function closeQrisModal() {
+  document.getElementById('qris-modal').style.display = 'none';
+  if (qrisPollInterval) clearInterval(qrisPollInterval);
+  if (qrisCountdownInterval) clearInterval(qrisCountdownInterval);
+  
+  if (document.getElementById('tab-store').classList.contains('active')) {
+      loadTransactionHistory();
+  }
+  
+  if (currentOrderId) {
+      toast('Jendela ditutup. Transaksi masih PENDING, Anda bisa melanjutkan pembayaran dari riwayat.', 'info');
+  }
+}
+
+// ============================================================
+// FUNGSI UTAMA: MENAMPILKAN TABEL RIWAYAT TRANSAKSI
+// ============================================================
+async function loadTransactionHistory() {
+    if (!state.user) return;
+    const tbody = document.getElementById('transaction-history-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;"><span class="spin-inline"></span> Memuat data...</td></tr>';
+    
+    try {
+        const { data, error } = await supabaseClient.from('transactions')
+            .select('*')
+            .eq('username', state.user.username)
+            .order('created_at', { ascending: false });
+            
+        if (error) throw error;
+        
+        if (!data || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Belum ada riwayat transaksi.</td></tr>';
+            return;
+        }
+        
+        tbody.innerHTML = data.map(trx => {
+            let statusBadge = '';
+            let actionBtns = '';
+            
+            let planType = trx.plan_type || (trx.amount === 35000 ? 'vip' : 'kuota');
+            let productName = trx.product_name || (trx.amount === 35000 ? 'VIP 30 Hari' : 'Booster (+1000 Kuota)');
+            const displayPlan = (planType === 'vip') ? 'VIP' : 'BOOSTER';
+
+            // ========================================================
+            // Pemetaan status lama ke status baru
+            // ========================================================
+            let currentStatus = trx.status;
+            if (currentStatus === 'success') currentStatus = 'succeed';
+            if (currentStatus === 'failed') currentStatus = 'cancelled';
+
+            // ---------------------------------------------------------
+            // 1. STATUS: SUCCEED (Berhasil)
+            // ---------------------------------------------------------
+            if (currentStatus === 'succeed') {
+                statusBadge = '<span class="badge-status active">Succeed</span>';
+                actionBtns = '<span style="font-size:11px; color:var(--success);">Sukses</span>';
+            } 
+            // ---------------------------------------------------------
+            // 2. STATUS: CANCELLED (Dibatalkan)
+            // ---------------------------------------------------------
+            else if (currentStatus === 'cancelled') {
+                statusBadge = '<span class="badge-status banned">Cancelled</span>';
+                actionBtns = '<span style="font-size:11px; color:var(--danger);">Dibatalkan</span>';
+            } 
+            // ---------------------------------------------------------
+            // 3. STATUS: PENDING (Menunggu Pembayaran)
+            // ---------------------------------------------------------
+            else if (currentStatus === 'pending') {
+                // Jika waktu sudah habis, tetap dianggap PENDING (user bisa memilih bayar nanti atau tidak)
+                statusBadge = '<span class="badge-status" style="background:rgba(234, 179, 8, 0.1); color:#eab308;">Pending</span>';
+
+                // Tombol Aksi: Bayar (Lanjutkan) dan Batalkan
+                actionBtns = `
+                    <div style="display: flex; gap: 6px; justify-content: flex-end; align-items: center;">
+                        <button class="btn btn-sm" style="background: var(--accent); color: white; padding: 4px 12px; font-size: 11px; font-weight: 600; border-radius: 20px;" onclick="resumePaymentFromHistory('${trx.order_id}', ${trx.amount}, '${planType}', '${trx.expires_at || ''}')">Bayar</button>
+                        <button class="btn btn-sm" style="background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); padding: 4px 12px; font-size: 11px; font-weight: 600; border-radius: 20px;" onclick="cancelPaymentFromHistory('${trx.order_id}')">Batalkan</button>
+                    </div>
+                `;
+            } 
+            // Fallback untuk status lain (jika ada data lama)
+            else {
+                statusBadge = '<span class="badge-status banned">Unknown</span>';
+                actionBtns = '-';
+            }
+            
+            return `
+            <tr>
+                <td>${productName}</td>
+                <td><code style="font-size: 11px;">${trx.order_id || '-'}</code></td>
+                <td><span class="badge-tier ${planType === 'vip' ? 'vip' : 'free'}">${displayPlan}</span></td>
+                <td>${formatRupiah(trx.amount || 0)}</td>
+                <td>${statusBadge}</td>
+                <td style="text-align: right;">${actionBtns}</td>
+            </tr>
+            `;
+        }).join('');
+    } catch (e) {
+        console.error("Error loading transactions:", e);
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--danger);">Gagal memuat riwayat.</td></tr>`;
+    }
+}
+
+// ============================================================
+// FUNGSI AKSI PADA RIWAYAT TRANSAKSI
+// ============================================================
+
+function resumePaymentFromHistory(orderId, amount, type, expiresAtStr) {
+    // Fungsi ini dipanggil saat user klik "Bayar"
+    // Sistem akan membuka kembali modal QRIS dengan data transaksi yang ada
+    initiateQrisPayment(amount, type, orderId, expiresAtStr);
+}
+  
+async function cancelPaymentFromHistory(orderId) {
+    // Fungsi ini dipanggil saat user klik "Batalkan"
+    if (!confirm('Apakah Anda yakin ingin membatalkan transaksi ini? Transaksi yang dibatalkan tidak dapat dilanjutkan lagi.')) return;
+    
+    toast('Memproses pembatalan...', 'info');
+
+    try {
+        // 1. Kirim request ke API Backend untuk membatalkan transaksi di sisi Cashi.id
+        const res = await fetch('/api/cashi/cancel-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ order_id: orderId })
+        });
+
+        const apiData = await res.json();
+
+        // 2. Jika API Cashi membalas dengan error, hentikan proses dan beri tahu user
+        if (!res.ok || !apiData.success) {
+            throw new Error(apiData.message || 'Gagal membatalkan transaksi di Cashi.id');
+        }
+
+        // 3. Jika berhasil membatalkan di Cashi, baru update database lokal menjadi 'cancelled'
+        const { error } = await supabaseClient.from('transactions').update({ status: 'cancelled' }).eq('order_id', orderId);
+        if (error) throw error;
+        
+        toast('Transaksi berhasil dibatalkan di sistem dan Cashi.', 'success');
+        loadTransactionHistory(); // Refresh tabel
+
+    } catch (err) {
+        console.error("Error Cancel:", err);
+        toast('Gagal membatalkan: ' + err.message, 'error');
+    }
+}
